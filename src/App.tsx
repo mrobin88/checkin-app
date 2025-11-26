@@ -7,6 +7,8 @@ import VenueList from './components/VenueList';
 import { useGeolocation } from './hooks/useGeolocation';
 import { Venue, CheckIn } from './types';
 import { supabase } from './lib/supabase';
+import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
+import { encode as encodeGeohash } from './lib/geohash';
 import { MapPin, Activity } from 'lucide-react';
 
 function App() {
@@ -49,19 +51,30 @@ function App() {
   const fetchNearbyVenues = async (lat: number, lng: number) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('nearby_venues', {
-          user_lat: lat,
-          user_lng: lng,
-          radius_meters: 5000
-        });
-
-      if (error) throw error;
-      setVenues(data || []);
+      
+      // Try fetching from OpenStreetMap first (real data!)
+      const overpassVenues = await fetchOverpassVenues(lat, lng, 100);
+      
+      // Convert to our Venue format
+      const venues: Venue[] = overpassVenues.map(v => ({
+        id: v.id,
+        name: v.name,
+        lat: v.lat,
+        lng: v.lng,
+        address: v.address || '',
+        category: v.category,
+        created_by: 'osm',
+        verified: true, // OSM data is verified
+        geohash: encodeGeohash(v.lat, v.lng, 8),
+        created_at: new Date().toISOString(),
+        checkin_count: 0, // Will be updated from Supabase if available
+      }));
+      
+      setVenues(venues);
+      console.log(`Found ${venues.length} real venues nearby!`);
     } catch (err) {
       console.error('Error fetching venues:', err);
-      // For demo purposes, use mock data if Supabase not configured
-      setVenues(getMockVenues(lat, lng));
+      setVenues([]);
     } finally {
       setLoading(false);
     }
@@ -80,7 +93,7 @@ function App() {
         user_id: item.user_id,
         venue_id: item.venue_id,
         comment: item.comment,
-        timestamp: item.timestamp,
+        checked_in_at: item.checked_in_at,
         geohash: '',
         user: {
           id: item.user_id,
@@ -119,50 +132,79 @@ function App() {
     if (!location) return;
 
     try {
-      // This would call the actual Supabase function
-      // For now, just refresh the check-ins
-      await fetchRecentCheckins();
+      // Store check-in in localStorage for now (until Supabase is set up)
+      const checkIn = {
+        id: crypto.randomUUID(),
+        venue_id: venueId,
+        venue_name: selectedVenue?.name || 'Unknown',
+        comment: comment || '',
+        checked_in_at: new Date().toISOString(),
+        lat: location.lat,
+        lng: location.lng,
+      };
+      
+      const stored = localStorage.getItem('checkins');
+      const checkins = stored ? JSON.parse(stored) : [];
+      checkins.unshift(checkIn);
+      localStorage.setItem('checkins', JSON.stringify(checkins.slice(0, 100))); // Keep last 100
+      
+      console.log('Checked in to:', checkIn.venue_name);
+      alert(`✅ Checked in to ${checkIn.venue_name}!`);
+      
       setShowCheckInModal(false);
       setSelectedVenue(null);
     } catch (err) {
       console.error('Error checking in:', err);
+      alert('Failed to check in. Please try again.');
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-[#c5ccd4]">
       <Header />
       
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 bg-white">
+      <div className="flex border-b-2 border-gray-400 bg-gradient-to-b from-[#6d84a3] to-[#4d6580] shadow-lg">
         <button
           onClick={() => setActiveTab('map')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
             activeTab === 'map'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-500'
+              ? 'bg-gradient-to-b from-white to-[#e8eef5] text-gray-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] border-t-2 border-white'
+              : 'text-white active:bg-black/20'
           }`}
+          style={activeTab === 'map' ? { textShadow: '0 1px 0 rgba(255,255,255,0.8)' } : { textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}
         >
           <MapPin size={18} />
           Nearby
         </button>
         <button
           onClick={() => setActiveTab('feed')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
             activeTab === 'feed'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-500'
+              ? 'bg-gradient-to-b from-white to-[#e8eef5] text-gray-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] border-t-2 border-white'
+              : 'text-white active:bg-black/20'
           }`}
+          style={activeTab === 'feed' ? { textShadow: '0 1px 0 rgba(255,255,255,0.8)' } : { textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}
         >
           <Activity size={18} />
           Activity
         </button>
       </div>
 
+      {/* Location Prompt */}
+      {!location && !locationError && loading && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+          <p className="text-sm text-blue-800">📍 Requesting your location to find nearby venues...</p>
+        </div>
+      )}
+      
       {/* Location Error */}
       {locationError && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
-          <p className="text-sm text-yellow-800">{locationError}</p>
+          <p className="text-sm text-yellow-800">⚠️ {locationError}</p>
+          <p className="text-xs text-yellow-700 mt-1">
+            Please enable location permissions in your browser to discover real venues nearby.
+          </p>
         </div>
       )}
 
@@ -178,7 +220,7 @@ function App() {
                 userLocation={location}
               />
             </div>
-            <div className="h-64 border-t border-gray-200 bg-white overflow-y-auto">
+            <div className="h-64 border-t-2 border-gray-400 bg-[#c5ccd4] overflow-y-auto shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
               <VenueList
                 venues={venues}
                 loading={loading}
@@ -259,7 +301,7 @@ function getMockCheckins(): CheckIn[] {
       user_id: 'user1',
       venue_id: 'venue1',
       comment: 'Best coffee in town! ☕',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      checked_in_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
       geohash: 'abc',
       user: {
         id: 'user1',
@@ -285,7 +327,7 @@ function getMockCheckins(): CheckIn[] {
       user_id: 'user2',
       venue_id: 'venue2',
       comment: 'Happy hour vibes 🍺',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      checked_in_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
       geohash: 'def',
       user: {
         id: 'user2',

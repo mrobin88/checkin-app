@@ -48,16 +48,16 @@ CREATE TABLE IF NOT EXISTS checkins (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
   comment TEXT,
-  timestamp TIMESTAMPTZ DEFAULT NOW(),
+  checked_in_at TIMESTAMPTZ DEFAULT NOW(),
   geohash TEXT NOT NULL,
   
   -- Prevent spam
-  CONSTRAINT unique_user_venue_time UNIQUE(user_id, venue_id, timestamp)
+  CONSTRAINT unique_user_venue_time UNIQUE(user_id, venue_id, checked_in_at)
 );
 
 CREATE INDEX IF NOT EXISTS checkins_user_id_idx ON checkins(user_id);
 CREATE INDEX IF NOT EXISTS checkins_venue_id_idx ON checkins(venue_id);
-CREATE INDEX IF NOT EXISTS checkins_timestamp_idx ON checkins(timestamp DESC);
+CREATE INDEX IF NOT EXISTS checkins_checked_in_at_idx ON checkins(checked_in_at DESC);
 CREATE INDEX IF NOT EXISTS checkins_geohash_idx ON checkins(geohash);
 
 -- Friendships table
@@ -146,7 +146,7 @@ RETURNS TABLE(
   user_id UUID,
   venue_id UUID,
   comment TEXT,
-  timestamp TIMESTAMPTZ,
+  checked_in_at TIMESTAMPTZ,
   username TEXT,
   avatar_url TEXT,
   venue_name TEXT,
@@ -159,7 +159,7 @@ BEGIN
     c.user_id,
     c.venue_id,
     c.comment,
-    c.timestamp,
+    c.checked_in_at,
     u.username,
     u.avatar_url,
     v.name as venue_name,
@@ -167,7 +167,7 @@ BEGIN
   FROM checkins c
   JOIN users u ON u.id = c.user_id
   JOIN venues v ON v.id = c.venue_id
-  ORDER BY c.timestamp DESC
+  ORDER BY c.checked_in_at DESC
   LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql STABLE;

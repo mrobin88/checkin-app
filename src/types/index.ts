@@ -17,7 +17,7 @@ export interface CheckIn {
   user_id: string;
   venue_id: string;
   comment?: string;
-  timestamp: string;
+  checked_in_at: string;
   geohash: string;
   user?: User;
   venue?: Venue;
@@ -44,13 +44,17 @@ export interface VenueCategory {
 }
 
 export const VENUE_CATEGORIES: VenueCategory[] = [
-  { id: 'food', name: 'Food & Drink', icon: '🍽️' },
+  { id: 'restaurant', name: 'Restaurant', icon: '🍽️' },
   { id: 'coffee', name: 'Coffee Shop', icon: '☕' },
   { id: 'bar', name: 'Bar & Nightlife', icon: '🍺' },
-  { id: 'shop', name: 'Shopping', icon: '🛍️' },
-  { id: 'outdoors', name: 'Outdoors', icon: '🌳' },
+  { id: 'shopping', name: 'Shopping', icon: '🛍️' },
+  { id: 'outdoors', name: 'Outdoors & Parks', icon: '🌳' },
   { id: 'entertainment', name: 'Entertainment', icon: '🎭' },
-  { id: 'fitness', name: 'Fitness', icon: '💪' },
+  { id: 'gym', name: 'Fitness & Gym', icon: '💪' },
+  { id: 'health', name: 'Health & Medical', icon: '🏥' },
+  { id: 'services', name: 'Services', icon: '🏢' },
+  { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'transport', name: 'Transport', icon: '🚇' },
   { id: 'other', name: 'Other', icon: '📍' },
 ];
 

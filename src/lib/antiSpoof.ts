@@ -22,7 +22,7 @@ export interface RateLimitResult {
 export function checkRateLimit(recentCheckins: CheckIn[]): RateLimitResult {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const checkinsInLastHour = recentCheckins.filter(
-    c => new Date(c.timestamp) > oneHourAgo
+    c => new Date(c.checked_in_at) > oneHourAgo
   );
 
   if (checkinsInLastHour.length >= MAX_CHECKINS_PER_HOUR) {
@@ -48,7 +48,7 @@ export function checkVelocity(
   }
 
   const lastVenue = lastCheckin.venue;
-  const timeDiffMs = Date.now() - new Date(lastCheckin.timestamp).getTime();
+  const timeDiffMs = Date.now() - new Date(lastCheckin.checked_in_at).getTime();
   const timeDiffSeconds = timeDiffMs / 1000;
 
   // If more than 1 hour, allow (user could have taken any transport)
