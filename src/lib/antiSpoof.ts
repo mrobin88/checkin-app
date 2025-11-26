@@ -39,8 +39,8 @@ export function checkRateLimit(recentCheckins: CheckIn[]): RateLimitResult {
 // Check if user is moving too fast (velocity check)
 export function checkVelocity(
   lastCheckin: CheckIn | null,
-  currentLat: number,
-  currentLng: number,
+  _currentLat: number,
+  _currentLng: number,
   venue: { lat: number; lng: number }
 ): VelocityCheckResult {
   if (!lastCheckin || !lastCheckin.venue) {

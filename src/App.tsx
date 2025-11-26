@@ -118,8 +118,7 @@ function App() {
       setCheckins(formattedCheckins);
     } catch (err) {
       console.error('Error fetching check-ins:', err);
-      // Use mock data for demo
-      setCheckins(getMockCheckins());
+      setCheckins([]);
     }
   };
 
@@ -247,108 +246,6 @@ function App() {
       )}
     </div>
   );
-}
-
-// Mock data for demo purposes
-function getMockVenues(lat: number, lng: number): Venue[] {
-  return [
-    {
-      id: '1',
-      name: 'Blue Bottle Coffee',
-      lat: lat + 0.001,
-      lng: lng + 0.001,
-      address: '123 Main St',
-      category: 'coffee',
-      created_by: 'demo',
-      verified: true,
-      geohash: 'abc123',
-      created_at: new Date().toISOString(),
-      checkin_count: 42
-    },
-    {
-      id: '2',
-      name: 'The Mission',
-      lat: lat - 0.002,
-      lng: lng + 0.002,
-      address: '456 Valencia St',
-      category: 'bar',
-      created_by: 'demo',
-      verified: true,
-      geohash: 'def456',
-      created_at: new Date().toISOString(),
-      checkin_count: 28
-    },
-    {
-      id: '3',
-      name: 'Golden Gate Park',
-      lat: lat + 0.003,
-      lng: lng - 0.001,
-      address: 'Golden Gate Park',
-      category: 'outdoors',
-      created_by: 'demo',
-      verified: false,
-      geohash: 'ghi789',
-      created_at: new Date().toISOString(),
-      checkin_count: 156
-    }
-  ];
-}
-
-function getMockCheckins(): CheckIn[] {
-  return [
-    {
-      id: '1',
-      user_id: 'user1',
-      venue_id: 'venue1',
-      comment: 'Best coffee in town! ☕',
-      checked_in_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-      geohash: 'abc',
-      user: {
-        id: 'user1',
-        username: 'sarah_chen',
-        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-        created_at: ''
-      },
-      venue: {
-        id: 'venue1',
-        name: 'Blue Bottle Coffee',
-        category: 'coffee',
-        lat: 0,
-        lng: 0,
-        address: '',
-        created_by: '',
-        verified: true,
-        geohash: '',
-        created_at: ''
-      }
-    },
-    {
-      id: '2',
-      user_id: 'user2',
-      venue_id: 'venue2',
-      comment: 'Happy hour vibes 🍺',
-      checked_in_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      geohash: 'def',
-      user: {
-        id: 'user2',
-        username: 'mike_jones',
-        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike',
-        created_at: ''
-      },
-      venue: {
-        id: 'venue2',
-        name: 'The Mission',
-        category: 'bar',
-        lat: 0,
-        lng: 0,
-        address: '',
-        created_by: '',
-        verified: true,
-        geohash: '',
-        created_at: ''
-      }
-    }
-  ];
 }
 
 export default App;
