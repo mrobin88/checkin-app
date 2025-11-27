@@ -30,8 +30,8 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
             tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             attribution: '© OpenStreetMap contributors',
-            maxzoom: 19
-          }
+            maxzoom: 19,
+          },
         },
         layers: [
           {
@@ -39,13 +39,13 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
             type: 'raster',
             source: 'osm',
             minzoom: 0,
-            maxzoom: 22
-          }
-        ]
+            maxzoom: 22,
+          },
+        ],
       },
       center: center,
       zoom: 16,
-      attributionControl: false
+      attributionControl: false,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -62,7 +62,7 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
       map.current.flyTo({
         center: [userLocation.lng, userLocation.lat],
         zoom: 17,
-        duration: 1000
+        duration: 1000,
       });
     }
   }, [userLocation]);
@@ -72,7 +72,7 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
     if (!map.current) return;
 
     // Clear existing markers
-    markers.current.forEach(marker => marker.remove());
+    markers.current.forEach((marker) => marker.remove());
     markers.current = [];
 
     // Add user location marker
@@ -91,13 +91,13 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
       const marker = new maplibregl.Marker({ element: userMarker })
         .setLngLat([userLocation.lng, userLocation.lat])
         .addTo(map.current);
-      
+
       markers.current.push(marker);
     }
 
     // Add venue markers
-    venues.forEach(venue => {
-      const category = VENUE_CATEGORIES.find(c => c.id === venue.category);
+    venues.forEach((venue) => {
+      const category = VENUE_CATEGORIES.find((c) => c.id === venue.category);
       const emoji = category?.icon || '📍';
 
       const el = document.createElement('div');
@@ -130,8 +130,7 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([venue.lng, venue.lat])
         .setPopup(
-          new maplibregl.Popup({ offset: 25 })
-            .setHTML(`
+          new maplibregl.Popup({ offset: 25 }).setHTML(`
               <div style="padding: 8px;">
                 <div style="font-weight: 600; margin-bottom: 4px;">${venue.name}</div>
                 <div style="font-size: 12px; color: #666;">
@@ -146,8 +145,5 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
     });
   }, [venues, userLocation, onVenueClick]);
 
-  return (
-    <div ref={mapContainer} className="w-full h-full" />
-  );
+  return <div ref={mapContainer} className="w-full h-full" />;
 }
-
