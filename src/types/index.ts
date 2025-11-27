@@ -23,6 +23,23 @@ export interface CheckIn {
   venue?: Venue;
 }
 
+export interface Message {
+  id: string;
+  venue_id: string;
+  venue_name: string;
+  venue_category?: string;
+  venue_lat?: number;
+  venue_lng?: number;
+  venue_address?: string;
+  user_id: string;
+  username: string;
+  avatar_url?: string;
+  content: string;
+  geohash: string;
+  created_at: string;
+  is_deleted?: boolean;
+}
+
 export interface User {
   id: string;
   username: string;

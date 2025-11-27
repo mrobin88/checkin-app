@@ -7,7 +7,7 @@ import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './hooks/useAuth';
-import { Venue, CheckIn } from './types';
+import { Venue, CheckIn, Message } from './types';
 import { supabase } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
 import { encode as encodeGeohash } from './lib/geohash';
@@ -31,27 +31,111 @@ function App() {
     }
   }, [location]);
 
-  // Load check-ins from localStorage on mount
+  // Load messages from Supabase (with localStorage fallback)
   useEffect(() => {
-    const stored = localStorage.getItem('checkins');
-    if (stored) {
+    const loadMessages = async () => {
       try {
-        const localCheckins = JSON.parse(stored);
-        setCheckins(localCheckins);
+        // Try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (!error && data && data.length > 0) {
+          // Convert messages to CheckIn format for display
+          const formattedCheckins: CheckIn[] = data.map((msg: Message) => ({
+            id: msg.id,
+            user_id: msg.user_id,
+            venue_id: msg.venue_id,
+            comment: msg.content,
+            checked_in_at: msg.created_at,
+            geohash: msg.geohash,
+            user: {
+              id: msg.user_id,
+              username: msg.username,
+              avatar_url: msg.avatar_url,
+              created_at: msg.created_at,
+            },
+            venue: {
+              id: msg.venue_id,
+              name: msg.venue_name,
+              category: msg.venue_category || 'other',
+              lat: msg.venue_lat || 0,
+              lng: msg.venue_lng || 0,
+              address: msg.venue_address || '',
+              created_by: '',
+              verified: false,
+              geohash: msg.geohash,
+              created_at: msg.created_at,
+            },
+          }));
+          setCheckins(formattedCheckins);
+          console.log(`Loaded ${formattedCheckins.length} messages from Supabase`);
+        } else {
+          // Fallback to localStorage
+          const stored = localStorage.getItem('checkins');
+          if (stored) {
+            const localCheckins = JSON.parse(stored);
+            setCheckins(localCheckins);
+            console.log('Loaded messages from localStorage (Supabase not available)');
+          }
+        }
       } catch (err) {
-        console.error('Error loading check-ins:', err);
+        console.error('Error loading messages:', err);
+        // Fallback to localStorage
+        const stored = localStorage.getItem('checkins');
+        if (stored) {
+          const localCheckins = JSON.parse(stored);
+          setCheckins(localCheckins);
+        }
       }
-    }
+    };
 
-    // Also try to fetch from Supabase
-    fetchRecentCheckins();
+    loadMessages();
 
-    // Subscribe to new check-ins
+    // Subscribe to real-time messages
     const subscription = supabase
-      .channel('checkins_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'checkins' }, () => {
-        fetchRecentCheckins();
-      })
+      .channel('messages_channel')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          console.log('New message received:', payload);
+          const newMsg = payload.new as Message;
+          
+          // Convert to CheckIn format and add to state
+          const newCheckin: CheckIn = {
+            id: newMsg.id,
+            user_id: newMsg.user_id,
+            venue_id: newMsg.venue_id,
+            comment: newMsg.content,
+            checked_in_at: newMsg.created_at,
+            geohash: newMsg.geohash,
+            user: {
+              id: newMsg.user_id,
+              username: newMsg.username,
+              avatar_url: newMsg.avatar_url,
+              created_at: newMsg.created_at,
+            },
+            venue: {
+              id: newMsg.venue_id,
+              name: newMsg.venue_name,
+              category: newMsg.venue_category || 'other',
+              lat: newMsg.venue_lat || 0,
+              lng: newMsg.venue_lng || 0,
+              address: newMsg.venue_address || '',
+              created_by: '',
+              verified: false,
+              geohash: newMsg.geohash,
+              created_at: newMsg.created_at,
+            },
+          };
+          
+          setCheckins((current) => [newCheckin, ...current]);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -91,47 +175,6 @@ function App() {
     }
   };
 
-  const fetchRecentCheckins = async () => {
-    try {
-      const { data, error } = await supabase.rpc('recent_checkins', { limit_count: 50 });
-
-      if (error) throw error;
-
-      // Transform the data to match CheckIn type
-      const formattedCheckins: CheckIn[] = (data || []).map((item: any) => ({
-        id: item.id,
-        user_id: item.user_id,
-        venue_id: item.venue_id,
-        comment: item.comment,
-        checked_in_at: item.checked_in_at,
-        geohash: '',
-        user: {
-          id: item.user_id,
-          username: item.username,
-          avatar_url: item.avatar_url,
-          created_at: '',
-        },
-        venue: {
-          id: item.venue_id,
-          name: item.venue_name,
-          category: item.venue_category,
-          lat: 0,
-          lng: 0,
-          address: '',
-          created_by: '',
-          verified: false,
-          geohash: '',
-          created_at: '',
-        },
-      }));
-
-      setCheckins(formattedCheckins);
-    } catch (err) {
-      console.error('Error fetching check-ins:', err);
-      setCheckins([]);
-    }
-  };
-
   const handleVenueClick = (venue: Venue) => {
     setSelectedVenue(venue);
     setShowCheckInModal(true);
@@ -146,33 +189,59 @@ function App() {
         user?.user_metadata?.avatar_url ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
 
-      // Create check-in object
-      const checkIn: CheckIn = {
-        id: crypto.randomUUID(),
-        user_id: user?.id || 'anonymous',
+      // Create message object for Supabase
+      const message: Omit<Message, 'id' | 'created_at'> = {
         venue_id: venueId,
-        comment: comment || '',
-        checked_in_at: new Date().toISOString(),
+        venue_name: selectedVenue.name,
+        venue_category: selectedVenue.category,
+        venue_lat: selectedVenue.lat,
+        venue_lng: selectedVenue.lng,
+        venue_address: selectedVenue.address,
+        user_id: user?.id || 'anonymous',
+        username: username,
+        avatar_url: avatarUrl,
+        content: comment || 'Checked in! 📍',
         geohash: encodeGeohash(location.lat, location.lng, 6),
-        user: {
-          id: user?.id || 'anonymous',
-          username: username,
-          avatar_url: avatarUrl,
-          created_at: new Date().toISOString(),
-        },
-        venue: selectedVenue,
+        is_deleted: false,
       };
 
-      // Store in localStorage
-      const stored = localStorage.getItem('checkins');
-      const existingCheckins = stored ? JSON.parse(stored) : [];
-      existingCheckins.unshift(checkIn);
-      localStorage.setItem('checkins', JSON.stringify(existingCheckins.slice(0, 100)));
+      // Try to save to Supabase first
+      const { data: savedMessage, error } = await supabase
+        .from('messages')
+        .insert(message)
+        .select()
+        .single();
 
-      // Update state to show immediately
-      setCheckins([checkIn, ...checkins]);
+      if (error) {
+        console.warn('Supabase not available, saving to localStorage:', error.message);
+        // Fallback to localStorage
+        const checkIn: CheckIn = {
+          id: crypto.randomUUID(),
+          user_id: message.user_id,
+          venue_id: message.venue_id,
+          comment: message.content,
+          checked_in_at: new Date().toISOString(),
+          geohash: message.geohash,
+          user: {
+            id: message.user_id,
+            username: message.username,
+            avatar_url: message.avatar_url,
+            created_at: new Date().toISOString(),
+          },
+          venue: selectedVenue,
+        };
 
-      console.log('✅ Checked in to:', selectedVenue.name);
+        const stored = localStorage.getItem('checkins');
+        const existingCheckins = stored ? JSON.parse(stored) : [];
+        existingCheckins.unshift(checkIn);
+        localStorage.setItem('checkins', JSON.stringify(existingCheckins.slice(0, 100)));
+
+        // Update state immediately
+        setCheckins([checkIn, ...checkins]);
+      } else {
+        console.log('✅ Message saved to Supabase:', savedMessage);
+        // Real-time subscription will add it to state automatically
+      }
 
       setShowCheckInModal(false);
       setSelectedVenue(null);
