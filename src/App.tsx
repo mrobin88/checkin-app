@@ -148,7 +148,7 @@ function App() {
       setLoading(true);
 
       // Try fetching from OpenStreetMap first (real data!)
-      const overpassVenues = await fetchOverpassVenues(lat, lng, 5000); // 5000m radius for easier testing
+      const overpassVenues = await fetchOverpassVenues(lat, lng, 5000); // 5km radius for easier testing
 
       // Convert to our Venue format
       const venues: Venue[] = overpassVenues.map((v) => ({
