@@ -104,7 +104,7 @@ function App() {
         (payload) => {
           console.log('New message received:', payload);
           const newMsg = payload.new as Message;
-          
+
           // Convert to CheckIn format and add to state
           const newCheckin: CheckIn = {
             id: newMsg.id,
@@ -132,7 +132,7 @@ function App() {
               created_at: newMsg.created_at,
             },
           };
-          
+
           setCheckins((current) => [newCheckin, ...current]);
         }
       )
@@ -148,7 +148,7 @@ function App() {
       setLoading(true);
 
       // Try fetching from OpenStreetMap first (real data!)
-      const overpassVenues = await fetchOverpassVenues(lat, lng, 100);
+      const overpassVenues = await fetchOverpassVenues(lat, lng, 5000); // 5000m radius for easier testing
 
       // Convert to our Venue format
       const venues: Venue[] = overpassVenues.map((v) => ({

@@ -22,7 +22,7 @@ export default function CheckInModal({ venue, userLocation, onClose, onCheckIn }
     ? distance(userLocation.lat, userLocation.lng, venue.lat, venue.lng)
     : null;
 
-  const tooFar = distanceMeters !== null && distanceMeters > 100;
+  const tooFar = distanceMeters !== null && distanceMeters > 500; // 500m for testing
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +81,7 @@ export default function CheckInModal({ venue, userLocation, onClose, onCheckIn }
                 Too far to check in
               </p>
               <p className="text-xs text-yellow-800 mt-1">
-                You're {Math.round(distanceMeters!)}m away. You must be within 100m of the venue.
+                You're {Math.round(distanceMeters!)}m away. You must be within 500m of the venue.
               </p>
             </div>
           </div>

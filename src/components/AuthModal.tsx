@@ -76,6 +76,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
 
         {/* OAuth Buttons */}
         <div className="space-y-3">
+          {/* Google Sign In */}
           <button
             onClick={() => handleOAuthLogin('google')}
             disabled={loading}
@@ -109,7 +110,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
               <div className="w-full border-t border-gray-400"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span
+              <span 
                 className="px-2 bg-[#c5ccd4] text-gray-700 font-medium"
                 style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}
               >
@@ -118,7 +119,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
             </div>
           </div>
 
-          {/* Anonymous Button */}
+          {/* Continue as Guest */}
           <button
             onClick={handleAnonymous}
             disabled={loading}
