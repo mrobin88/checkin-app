@@ -41,8 +41,8 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
       <div className="bg-gradient-to-b from-[#c5ccd4] to-[#a8b4c0] rounded-2xl w-full max-w-md p-6 animate-slideUp shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-2 border-white/30">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 
-            className="text-2xl font-bold text-gray-900" 
+          <h2
+            className="text-2xl font-bold text-gray-900"
             style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}
           >
             Sign In
@@ -55,7 +55,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
           </button>
         </div>
 
-        <p 
+        <p
           className="text-sm text-gray-700 mb-6 text-center"
           style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}
         >
@@ -65,7 +65,10 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
         {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-gradient-to-b from-red-50 to-red-100 border border-red-300 rounded-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)]">
-            <p className="text-sm text-red-800" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+            <p
+              className="text-sm text-red-800"
+              style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+            >
               {error}
             </p>
           </div>
@@ -106,7 +109,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
               <div className="w-full border-t border-gray-400"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span 
+              <span
                 className="px-2 bg-[#c5ccd4] text-gray-700 font-medium"
                 style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}
               >
@@ -126,7 +129,7 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
           </button>
         </div>
 
-        <p 
+        <p
           className="text-xs text-gray-600 text-center mt-6"
           style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}
         >
@@ -136,4 +139,3 @@ export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalPro
     </div>
   );
 }
-

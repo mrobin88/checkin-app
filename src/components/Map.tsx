@@ -19,13 +19,32 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Using MapTiler free tier (alternative to Mapbox)
-    // You can also use: https://demotiles.maplibre.org/style.json for demo
+    // Using OpenStreetMap tiles with street names
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors',
+            maxzoom: 19
+          }
+        },
+        layers: [
+          {
+            id: 'osm',
+            type: 'raster',
+            source: 'osm',
+            minzoom: 0,
+            maxzoom: 22
+          }
+        ]
+      },
       center: center,
-      zoom: 14,
+      zoom: 16,
       attributionControl: false
     });
 
@@ -42,7 +61,7 @@ export default function Map({ center, venues, onVenueClick, userLocation }: MapP
     if (map.current && userLocation) {
       map.current.flyTo({
         center: [userLocation.lng, userLocation.lat],
-        zoom: 15,
+        zoom: 17,
         duration: 1000
       });
     }
