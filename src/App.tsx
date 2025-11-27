@@ -5,9 +5,10 @@ import CheckInModal from './components/CheckInModal';
 import ActivityFeed from './components/ActivityFeed';
 import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
+import ReplyModal from './components/ReplyModal';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './hooks/useAuth';
-import { Venue, CheckIn, Message } from './types';
+import { Venue, CheckIn, Message, Notification as NotificationType } from './types';
 import { supabase } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
 import { encode as encodeGeohash } from './lib/geohash';
@@ -21,6 +22,8 @@ function App() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; username: string; venueName: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'feed'>('map');
   const [loading, setLoading] = useState(true);
 
@@ -96,7 +99,7 @@ function App() {
     loadMessages();
 
     // Subscribe to real-time messages
-    const subscription = supabase
+    const messagesSubscription = supabase
       .channel('messages_channel')
       .on(
         'postgres_changes',
@@ -138,17 +141,51 @@ function App() {
       )
       .subscribe();
 
+    // Subscribe to notifications
+    const notificationsSubscription = supabase
+      .channel('notifications_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: user ? `user_id=eq.${user.id}` : `user_id=eq.anonymous`,
+        },
+        (payload) => {
+          const notification = payload.new as NotificationType;
+          console.log('New notification:', notification);
+          
+          // Show browser alert
+          if (Notification.permission === 'granted') {
+            new Notification(`Reply from @${notification.from_username}`, {
+              body: notification.content,
+              icon: notification.from_avatar_url,
+            });
+          } else {
+            alert(`💬 Reply from @${notification.from_username}:\n"${notification.content}"`);
+          }
+        }
+      )
+      .subscribe();
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     return () => {
-      subscription.unsubscribe();
+      messagesSubscription.unsubscribe();
+      notificationsSubscription.unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   const fetchNearbyVenues = async (lat: number, lng: number) => {
     try {
       setLoading(true);
 
       // Try fetching from OpenStreetMap first (real data!)
-      const overpassVenues = await fetchOverpassVenues(lat, lng, 5000); // 5km radius for easier testing
+      const overpassVenues = await fetchOverpassVenues(lat, lng, 1000); // 5km radius for easier testing
 
       // Convert to our Venue format
       const venues: Venue[] = overpassVenues.map((v) => ({
@@ -178,6 +215,50 @@ function App() {
   const handleVenueClick = (venue: Venue) => {
     setSelectedVenue(venue);
     setShowCheckInModal(true);
+  };
+
+  const handleReply = (checkInId: string, originalUser: string, venueName: string) => {
+    setReplyTo({ id: checkInId, username: originalUser, venueName });
+    setShowReplyModal(true);
+  };
+
+  const handleSendReply = async (replyText: string) => {
+    if (!location || !replyTo) return;
+
+    const username = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
+    const avatarUrl =
+      user?.user_metadata?.avatar_url ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
+    // Find the original check-in to get venue info
+    const originalCheckIn = checkins.find((c) => c.id === replyTo.id);
+    if (!originalCheckIn) return;
+
+    // Create reply message
+    const reply: Omit<Message, 'id' | 'created_at'> = {
+      venue_id: originalCheckIn.venue_id,
+      venue_name: originalCheckIn.venue?.name || replyTo.venueName,
+      venue_category: originalCheckIn.venue?.category,
+      venue_lat: originalCheckIn.venue?.lat,
+      venue_lng: originalCheckIn.venue?.lng,
+      venue_address: originalCheckIn.venue?.address,
+      user_id: user?.id || 'anonymous',
+      username: username,
+      avatar_url: avatarUrl,
+      content: replyText,
+      geohash: encodeGeohash(location.lat, location.lng, 6),
+      parent_message_id: replyTo.id,
+      is_deleted: false,
+    };
+
+    const { error } = await supabase.from('messages').insert(reply);
+
+    if (error) {
+      console.error('Error sending reply:', error);
+      throw error;
+    }
+
+    console.log('✅ Reply sent!');
   };
 
   const handleCheckIn = async (venueId: string, comment?: string) => {
@@ -327,7 +408,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <ActivityFeed checkins={checkins} />
+          <ActivityFeed checkins={checkins} onReply={handleReply} />
         )}
       </div>
 
@@ -351,6 +432,19 @@ function App() {
           onContinueAnonymous={() => {
             // Just close the modal, they can check in anonymously
           }}
+        />
+      )}
+
+      {/* Reply Modal */}
+      {showReplyModal && replyTo && (
+        <ReplyModal
+          originalUser={replyTo.username}
+          venueName={replyTo.venueName}
+          onClose={() => {
+            setShowReplyModal(false);
+            setReplyTo(null);
+          }}
+          onSend={handleSendReply}
         />
       )}
     </div>

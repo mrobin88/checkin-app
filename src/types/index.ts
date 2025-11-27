@@ -38,6 +38,23 @@ export interface Message {
   geohash: string;
   created_at: string;
   is_deleted?: boolean;
+  parent_message_id?: string;
+  reply_count?: number;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  from_user_id: string;
+  from_username: string;
+  from_avatar_url?: string;
+  message_id: string;
+  parent_message_id?: string;
+  notification_type: 'reply' | 'mention';
+  content: string;
+  venue_name?: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface User {

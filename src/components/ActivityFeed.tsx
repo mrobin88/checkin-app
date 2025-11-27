@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MapPin, MessageCircle } from 'lucide-react';
+import { MapPin, MessageCircle, Reply } from 'lucide-react';
 import { CheckIn } from '../types';
 import { VENUE_CATEGORIES } from '../types';
 
 interface ActivityFeedProps {
   checkins: CheckIn[];
+  onReply: (checkInId: string, originalUser: string, venueName: string) => void;
 }
 
-export default function ActivityFeed({ checkins }: ActivityFeedProps) {
+export default function ActivityFeed({ checkins, onReply }: ActivityFeedProps) {
   if (checkins.length === 0) {
     return (
       <div className="flex items-center justify-center h-full p-8 bg-[#c5ccd4]">
@@ -90,6 +92,16 @@ export default function ActivityFeed({ checkins }: ActivityFeedProps) {
                     </span>
                     <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>{timeAgo}</span>
                   </div>
+
+                  {/* Reply Button */}
+                  <button
+                    onClick={() => onReply(checkin.id, checkin.user?.username || 'Anonymous', checkin.venue?.name || 'Unknown')}
+                    className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                    style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                  >
+                    <Reply size={12} />
+                    Reply
+                  </button>
                 </div>
               </div>
             </div>
