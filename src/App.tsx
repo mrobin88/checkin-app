@@ -23,7 +23,11 @@ function App() {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
-  const [replyTo, setReplyTo] = useState<{ id: string; username: string; venueName: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{
+    id: string;
+    username: string;
+    venueName: string;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'feed'>('map');
   const [loading, setLoading] = useState(true);
 
@@ -155,7 +159,7 @@ function App() {
         (payload) => {
           const notification = payload.new as NotificationType;
           console.log('New notification:', notification);
-          
+
           // Show browser alert
           if (Notification.permission === 'granted') {
             new Notification(`Reply from @${notification.from_username}`, {

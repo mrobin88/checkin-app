@@ -13,12 +13,15 @@ You're seeing `your-project.supabase.co` because Google OAuth isn't configured i
 1. Go to: **https://supabase.com/dashboard/project/qpqlhqrzajwzggismznp/auth/url-configuration**
 
 2. Set **Site URL** to your Vercel URL:
+
    ```
    https://your-app-name.vercel.app
    ```
+
    (Replace with your actual Vercel URL)
 
 3. Add **Redirect URLs** (add both):
+
    ```
    http://localhost:5173/**
    https://your-app-name.vercel.app/**
@@ -78,6 +81,7 @@ You're seeing `your-project.supabase.co` because Google OAuth isn't configured i
 3. Toggle **"Enable Sign in with Google"** to ON
 
 4. Paste:
+
    - **Client ID** (from Google)
    - **Client Secret** (from Google)
 
@@ -100,10 +104,12 @@ You're seeing `your-project.supabase.co` because Google OAuth isn't configured i
 ### If OAuth still doesn't work in Safari:
 
 1. **Disable "Prevent Cross-Site Tracking"**
+
    - Safari → Settings → Privacy
    - Uncheck "Prevent cross-site tracking" (temporarily for testing)
 
 2. **Allow Third-Party Cookies**
+
    - Safari → Settings → Privacy
    - Uncheck "Block all cookies"
 
@@ -128,15 +134,18 @@ You're seeing `your-project.supabase.co` because Google OAuth isn't configured i
 ## 🎯 Common Errors
 
 ### "redirect_uri_mismatch"
+
 - Make sure you added **both** these redirect URIs in Google Cloud Console:
   - `https://qpqlhqrzajwzggismznp.supabase.co/auth/v1/callback`
   - Your actual Vercel URL
 
 ### Still going to "your-project.supabase.co"
+
 - You haven't enabled Google provider in Supabase yet
 - Go to Step 3 above
 
 ### "Invalid client"
+
 - Client ID or Secret is wrong
 - Re-copy from Google Cloud Console
 - Make sure there are no extra spaces
@@ -146,6 +155,7 @@ You're seeing `your-project.supabase.co` because Google OAuth isn't configured i
 ## 💡 What Your Vercel URL Is
 
 Find it here:
+
 1. Go to **https://vercel.com/dashboard**
 2. Click your `checkin-app` project
 3. Look for **Domains** section
@@ -154,4 +164,3 @@ Find it here:
 ---
 
 **Once configured, "Continue as Guest" will still work, but you'll also have working Google OAuth!** 🎉
-
