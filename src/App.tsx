@@ -4,7 +4,9 @@ import Header from './components/Header';
 import CheckInModal from './components/CheckInModal';
 import ActivityFeed from './components/ActivityFeed';
 import VenueList from './components/VenueList';
+import AuthModal from './components/AuthModal';
 import { useGeolocation } from './hooks/useGeolocation';
+import { useAuth } from './hooks/useAuth';
 import { Venue, CheckIn } from './types';
 import { supabase } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
@@ -13,10 +15,12 @@ import { MapPin, Activity } from 'lucide-react';
 
 function App() {
   const { location, error: locationError } = useGeolocation();
+  const { user } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'map' | 'feed'>('map');
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +31,19 @@ function App() {
     }
   }, [location]);
 
-  // Fetch recent check-ins
+  // Load check-ins from localStorage on mount
   useEffect(() => {
+    const stored = localStorage.getItem('checkins');
+    if (stored) {
+      try {
+        const localCheckins = JSON.parse(stored);
+        setCheckins(localCheckins);
+      } catch (err) {
+        console.error('Error loading check-ins:', err);
+      }
+    }
+    
+    // Also try to fetch from Supabase
     fetchRecentCheckins();
     
     // Subscribe to new check-ins
@@ -128,27 +143,42 @@ function App() {
   };
 
   const handleCheckIn = async (venueId: string, comment?: string) => {
-    if (!location) return;
+    if (!location || !selectedVenue) return;
 
     try {
-      // Store check-in in localStorage for now (until Supabase is set up)
-      const checkIn = {
+      const username = user?.user_metadata?.full_name || 
+                      user?.email?.split('@')[0] || 
+                      'Anonymous';
+      const avatarUrl = user?.user_metadata?.avatar_url || 
+                       `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
+      // Create check-in object
+      const checkIn: CheckIn = {
         id: crypto.randomUUID(),
+        user_id: user?.id || 'anonymous',
         venue_id: venueId,
-        venue_name: selectedVenue?.name || 'Unknown',
         comment: comment || '',
         checked_in_at: new Date().toISOString(),
-        lat: location.lat,
-        lng: location.lng,
+        geohash: encodeGeohash(location.lat, location.lng, 6),
+        user: {
+          id: user?.id || 'anonymous',
+          username: username,
+          avatar_url: avatarUrl,
+          created_at: new Date().toISOString(),
+        },
+        venue: selectedVenue,
       };
-      
+
+      // Store in localStorage
       const stored = localStorage.getItem('checkins');
-      const checkins = stored ? JSON.parse(stored) : [];
-      checkins.unshift(checkIn);
-      localStorage.setItem('checkins', JSON.stringify(checkins.slice(0, 100))); // Keep last 100
-      
-      console.log('Checked in to:', checkIn.venue_name);
-      alert(`✅ Checked in to ${checkIn.venue_name}!`);
+      const existingCheckins = stored ? JSON.parse(stored) : [];
+      existingCheckins.unshift(checkIn);
+      localStorage.setItem('checkins', JSON.stringify(existingCheckins.slice(0, 100)));
+
+      // Update state to show immediately
+      setCheckins([checkIn, ...checkins]);
+
+      console.log('✅ Checked in to:', selectedVenue.name);
       
       setShowCheckInModal(false);
       setSelectedVenue(null);
@@ -160,7 +190,7 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-[#c5ccd4]">
-      <Header />
+      <Header onLoginClick={() => setShowAuthModal(true)} />
       
       {/* Tab Navigation */}
       <div className="flex border-b-2 border-gray-400 bg-gradient-to-b from-[#6d84a3] to-[#4d6580] shadow-lg">
@@ -242,6 +272,16 @@ function App() {
             setSelectedVenue(null);
           }}
           onCheckIn={handleCheckIn}
+        />
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)}
+          onContinueAnonymous={() => {
+            // Just close the modal, they can check in anonymously
+          }}
         />
       )}
     </div>
