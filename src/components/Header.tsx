@@ -6,7 +6,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onLoginClick }: HeaderProps) {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
   return (
     <header className="bg-gradient-to-b from-[#6d84a3] via-[#5a7493] to-[#4d6580] border-b-2 border-gray-800 px-4 py-3 flex items-center justify-between shadow-lg">
@@ -29,8 +29,10 @@ export default function Header({ onLoginClick }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
-        {user ? (
+      <div className="flex items-center gap-2 min-w-[100px] justify-end">
+        {loading ? (
+          <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+        ) : user ? (
           <>
             <img
               src={

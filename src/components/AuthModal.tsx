@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -10,6 +11,14 @@ interface AuthModalProps {
 export default function AuthModal({ onClose, onContinueAnonymous }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Auto-close modal when user successfully logs in
+  useEffect(() => {
+    if (user) {
+      onClose();
+    }
+  }, [user, onClose]);
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     try {

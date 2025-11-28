@@ -7,23 +7,47 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Clean up OAuth hash from URL immediately to prevent flicker
+    const cleanupUrlHash = () => {
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        // Clean up URL after processing OAuth tokens
+        cleanupUrlHash();
+      } catch (error) {
+        console.error('Error loading session:', error);
+        setLoading(false);
+      }
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      // Clean up URL on auth state changes too
+      cleanupUrlHash();
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return { user, loading, signOut };
