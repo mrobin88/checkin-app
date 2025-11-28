@@ -20,13 +20,14 @@ export function useAuth() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        console.log('🔐 Auth initialized:', session?.user ? `Logged in as ${session.user.email}` : 'Not logged in');
         setUser(session?.user ?? null);
         setLoading(false);
 
         // Clean up URL after processing OAuth tokens
         cleanupUrlHash();
       } catch (error) {
-        console.error('Error loading session:', error);
+        console.error('❌ Error loading session:', error);
         setLoading(false);
       }
     };
@@ -36,7 +37,8 @@ export function useAuth() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state changed:', event, session?.user ? `User: ${session.user.email}` : 'No user');
       setUser(session?.user ?? null);
 
       // Clean up URL on auth state changes too

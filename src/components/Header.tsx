@@ -8,6 +8,8 @@ interface HeaderProps {
 export default function Header({ onLoginClick }: HeaderProps) {
   const { user, loading, signOut } = useAuth();
 
+  console.log('👤 Header render:', { loading, hasUser: !!user, email: user?.email });
+
   return (
     <header className="bg-gradient-to-b from-[#6d84a3] via-[#5a7493] to-[#4d6580] border-b-2 border-gray-800 px-4 py-3 flex items-center justify-between shadow-lg">
       <div className="flex items-center gap-2">
