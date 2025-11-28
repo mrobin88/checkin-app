@@ -20,13 +20,15 @@ interface CheckInWithDistance extends CheckIn {
 // Calculate distance between two points in miles (Haversine formula)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3959; // Earth's radius in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLng/2) * Math.sin(dLng/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
@@ -41,28 +43,30 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
 
   // Filter and sort check-ins by distance
   const filteredCheckins: CheckInWithDistance[] = useMemo(() => {
-    const filter = DISTANCE_FILTERS.find(f => f.id === selectedFilter) || DISTANCE_FILTERS[0];
-    
+    const filter = DISTANCE_FILTERS.find((f) => f.id === selectedFilter) || DISTANCE_FILTERS[0];
+
     if (!userLocation) {
       // No location available, show all (global)
-      return checkins.map(c => ({ ...c, distance: undefined }));
+      return checkins.map((c) => ({ ...c, distance: undefined }));
     }
 
     return checkins
-      .map(checkin => {
+      .map((checkin) => {
         const venueLat = checkin.venue?.lat;
         const venueLng = checkin.venue?.lng;
-        
+
         if (venueLat && venueLng) {
           const distance = calculateDistance(
-            userLocation.lat, userLocation.lng,
-            venueLat, venueLng
+            userLocation.lat,
+            userLocation.lng,
+            venueLat,
+            venueLng
           );
           return { ...checkin, distance };
         }
         return { ...checkin, distance: Infinity };
       })
-      .filter(checkin => (checkin.distance ?? Infinity) <= filter.miles)
+      .filter((checkin) => (checkin.distance ?? Infinity) <= filter.miles)
       .sort((a, b) => {
         // Sort by time (most recent first) for global, by distance for local
         if (filter.id === 'global') {
@@ -72,17 +76,24 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
       });
   }, [checkins, userLocation, selectedFilter]);
 
-  const currentFilter = DISTANCE_FILTERS.find(f => f.id === selectedFilter) || DISTANCE_FILTERS[0];
+  const currentFilter =
+    DISTANCE_FILTERS.find((f) => f.id === selectedFilter) || DISTANCE_FILTERS[0];
 
   if (checkins.length === 0) {
     return (
       <div className="flex items-center justify-center h-full p-8 bg-[#c5ccd4]">
         <div className="text-center bg-white rounded-xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] p-6 border border-gray-300">
           <MessageCircle size={48} className="mx-auto text-gray-400 mb-3 drop-shadow" />
-          <p className="text-gray-700 font-bold" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+          <p
+            className="text-gray-700 font-bold"
+            style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+          >
             No recent activity
           </p>
-          <p className="text-sm text-gray-600 mt-1" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+          <p
+            className="text-sm text-gray-600 mt-1"
+            style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+          >
             Check in to places to see activity here
           </p>
         </div>
@@ -107,7 +118,11 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
                     ? 'bg-gradient-to-b from-[#5ba4e5] to-[#3b7fc4] text-white shadow-md border border-[#2d5f9f]'
                     : 'bg-gradient-to-b from-white to-gray-100 text-gray-700 border border-gray-300 shadow-sm hover:from-gray-50 hover:to-gray-150'
                 }`}
-                style={isSelected ? { textShadow: '0 -1px 0 rgba(0,0,0,0.3)' } : { textShadow: '0 1px 0 rgba(255,255,255,0.8)' }}
+                style={
+                  isSelected
+                    ? { textShadow: '0 -1px 0 rgba(0,0,0,0.3)' }
+                    : { textShadow: '0 1px 0 rgba(255,255,255,0.8)' }
+                }
               >
                 <Icon size={12} />
                 {filter.label}
@@ -116,8 +131,11 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
           })}
         </div>
         {/* Results count */}
-        <p className="text-center text-[10px] text-gray-600 mt-1" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
-          {filteredCheckins.length} {filteredCheckins.length === 1 ? 'check-in' : 'check-ins'} 
+        <p
+          className="text-center text-[10px] text-gray-600 mt-1"
+          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+        >
+          {filteredCheckins.length} {filteredCheckins.length === 1 ? 'check-in' : 'check-ins'}
           {currentFilter.id !== 'global' && userLocation && ` within ${currentFilter.miles} mi`}
           {currentFilter.id === 'global' && ' worldwide'}
         </p>
@@ -129,11 +147,17 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
           <div className="flex items-center justify-center h-full">
             <div className="text-center bg-white rounded-xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] p-6 border border-gray-300">
               <Navigation size={48} className="mx-auto text-gray-400 mb-3 drop-shadow" />
-              <p className="text-gray-700 font-bold" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+              <p
+                className="text-gray-700 font-bold"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
                 No activity {currentFilter.id !== 'global' ? 'nearby' : ''}
               </p>
-              <p className="text-sm text-gray-600 mt-1" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
-                {currentFilter.id !== 'global' 
+              <p
+                className="text-sm text-gray-600 mt-1"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
+                {currentFilter.id !== 'global'
                   ? 'Try expanding your search radius'
                   : 'Be the first to check in!'}
               </p>
@@ -142,17 +166,16 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
         ) : (
           <div className="max-w-2xl mx-auto space-y-2">
             {filteredCheckins.map((checkin) => {
-              const category = VENUE_CATEGORIES.find(
-                c => c.id === checkin.venue?.category
-              );
+              const category = VENUE_CATEGORIES.find((c) => c.id === checkin.venue?.category);
               const timeAgo = formatDistanceToNow(new Date(checkin.checked_in_at), {
-                addSuffix: true
+                addSuffix: true,
               });
-              const distanceText = checkin.distance !== undefined && checkin.distance !== Infinity
-                ? checkin.distance < 1 
-                  ? `${Math.round(checkin.distance * 5280)} ft away`
-                  : `${checkin.distance.toFixed(1)} mi away`
-                : null;
+              const distanceText =
+                checkin.distance !== undefined && checkin.distance !== Infinity
+                  ? checkin.distance < 1
+                    ? `${Math.round(checkin.distance * 5280)} ft away`
+                    : `${checkin.distance.toFixed(1)} mi away`
+                  : null;
 
               return (
                 <div
@@ -173,10 +196,16 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-gray-900" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                        <span
+                          className="font-bold text-gray-900"
+                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                        >
                           {checkin.user?.username}
                         </span>
-                        <span className="text-gray-600 text-xs" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                        <span
+                          className="text-gray-600 text-xs"
+                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                        >
                           checked in at
                         </span>
                       </div>
@@ -185,7 +214,10 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg drop-shadow">{category?.icon || '📍'}</span>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-900 truncate text-sm" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                          <h3
+                            className="font-bold text-gray-900 truncate text-sm"
+                            style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                          >
                             {checkin.venue?.name}
                           </h3>
                           {checkin.venue?.verified && (
@@ -196,7 +228,10 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
 
                       {/* Comment */}
                       {checkin.comment && (
-                        <p className="text-gray-800 mb-2 text-sm" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                        <p
+                          className="text-gray-800 mb-2 text-sm"
+                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                        >
                           {checkin.comment}
                         </p>
                       )}
@@ -213,12 +248,20 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
                             {distanceText}
                           </span>
                         )}
-                        <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>{timeAgo}</span>
+                        <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                          {timeAgo}
+                        </span>
                       </div>
 
                       {/* Reply Button */}
                       <button
-                        onClick={() => onReply(checkin.id, checkin.user?.username || 'Anonymous', checkin.venue?.name || 'Unknown')}
+                        onClick={() =>
+                          onReply(
+                            checkin.id,
+                            checkin.user?.username || 'Anonymous',
+                            checkin.venue?.name || 'Unknown'
+                          )
+                        }
                         className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                         style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
                       >
@@ -236,4 +279,3 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
     </div>
   );
 }
-
