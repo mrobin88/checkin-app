@@ -7,7 +7,7 @@ import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
 import ReplyModal from './components/ReplyModal';
 import { useGeolocation } from './hooks/useGeolocation';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './contexts/AuthContext';
 import { Venue, CheckIn, Message, Notification as NotificationType } from './types';
 import { supabase } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
