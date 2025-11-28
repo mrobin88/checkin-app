@@ -17,10 +17,12 @@ export function useAuth() {
     // Get initial session
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
         // Clean up URL after processing OAuth tokens
         cleanupUrlHash();
       } catch (error) {
@@ -32,9 +34,11 @@ export function useAuth() {
     initAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      
+
       // Clean up URL on auth state changes too
       cleanupUrlHash();
     });
@@ -52,4 +56,3 @@ export function useAuth() {
 
   return { user, loading, signOut };
 }
-
