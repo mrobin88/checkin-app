@@ -412,7 +412,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <ActivityFeed checkins={checkins} onReply={handleReply} />
+          <ActivityFeed checkins={checkins} userLocation={location} onReply={handleReply} />
         )}
       </div>
 
