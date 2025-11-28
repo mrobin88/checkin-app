@@ -12,6 +12,11 @@ const DISTANCE_FILTERS = [
   { id: 'global', label: 'Global', miles: Infinity, icon: Globe },
 ] as const;
 
+// Extended CheckIn type with distance
+interface CheckInWithDistance extends CheckIn {
+  distance?: number;
+}
+
 // Calculate distance between two points in miles (Haversine formula)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3959; // Earth's radius in miles
@@ -35,12 +40,12 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
   const [selectedFilter, setSelectedFilter] = useState<string>('nearby');
 
   // Filter and sort check-ins by distance
-  const filteredCheckins = useMemo(() => {
+  const filteredCheckins: CheckInWithDistance[] = useMemo(() => {
     const filter = DISTANCE_FILTERS.find(f => f.id === selectedFilter) || DISTANCE_FILTERS[0];
     
     if (!userLocation) {
       // No location available, show all (global)
-      return checkins;
+      return checkins.map(c => ({ ...c, distance: undefined }));
     }
 
     return checkins
@@ -57,13 +62,13 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
         }
         return { ...checkin, distance: Infinity };
       })
-      .filter(checkin => checkin.distance <= filter.miles)
+      .filter(checkin => (checkin.distance ?? Infinity) <= filter.miles)
       .sort((a, b) => {
         // Sort by time (most recent first) for global, by distance for local
         if (filter.id === 'global') {
           return new Date(b.checked_in_at).getTime() - new Date(a.checked_in_at).getTime();
         }
-        return (a.distance || 0) - (b.distance || 0);
+        return (a.distance ?? 0) - (b.distance ?? 0);
       });
   }, [checkins, userLocation, selectedFilter]);
 
