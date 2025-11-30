@@ -165,11 +165,7 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
         ) : (
           <div className="max-w-2xl mx-auto space-y-3">
             {filteredCheckins.map((checkin) => (
-              <CheckInCard
-                key={checkin.id}
-                checkin={checkin}
-                onReply={onReply}
-              />
+              <CheckInCard key={checkin.id} checkin={checkin} onReply={onReply} />
             ))}
           </div>
         )}

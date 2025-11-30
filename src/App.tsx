@@ -340,8 +340,8 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-[#c5ccd4]">
-      <Header 
-        onLoginClick={() => setShowAuthModal(true)} 
+      <Header
+        onLoginClick={() => setShowAuthModal(true)}
         onProfileClick={() => setShowProfilePage(true)}
       />
 
@@ -458,9 +458,7 @@ function App() {
       )}
 
       {/* Profile Page */}
-      {showProfilePage && (
-        <ProfilePage onClose={() => setShowProfilePage(false)} />
-      )}
+      {showProfilePage && <ProfilePage onClose={() => setShowProfilePage(false)} />}
     </div>
   );
 }

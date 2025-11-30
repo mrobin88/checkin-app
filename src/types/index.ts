@@ -127,4 +127,3 @@ export const VENUE_CATEGORIES: VenueCategory[] = [
   { id: 'transport', name: 'Transport', icon: '🚇' },
   { id: 'other', name: 'Other', icon: '📍' },
 ];
-
