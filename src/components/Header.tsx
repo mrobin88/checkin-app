@@ -1,14 +1,13 @@
-import { MapPin, LogIn, LogOut } from 'lucide-react';
+import { MapPin, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onLoginClick: () => void;
+  onProfileClick: () => void;
 }
 
-export default function Header({ onLoginClick }: HeaderProps) {
-  const { user, loading, signOut } = useAuth();
-
-  console.log('👤 Header render:', { loading, hasUser: !!user, email: user?.email });
+export default function Header({ onLoginClick, onProfileClick }: HeaderProps) {
+  const { user, loading } = useAuth();
 
   return (
     <header className="bg-gradient-to-b from-[#6d84a3] via-[#5a7493] to-[#4d6580] border-b-2 border-gray-800 px-4 py-3 flex items-center justify-between shadow-lg">
@@ -35,29 +34,25 @@ export default function Header({ onLoginClick }: HeaderProps) {
         {loading ? (
           <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
         ) : user ? (
-          <>
+          <button
+            onClick={onProfileClick}
+            className="flex items-center gap-2 active:scale-95 transition-transform"
+          >
             <img
               src={
                 user.user_metadata?.avatar_url ||
                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
               }
               alt="User avatar"
-              className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden shadow-lg border-2 border-white/40"
+              className="w-9 h-9 rounded-full bg-gray-300 overflow-hidden shadow-lg border-2 border-white/40 hover:border-white/60 transition-all"
             />
             <span
-              className="text-sm text-white font-medium max-w-[100px] truncate"
+              className="text-sm text-white font-medium max-w-[100px] truncate hidden sm:block"
               style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}
             >
               {user.user_metadata?.full_name || user.email?.split('@')[0]}
             </span>
-            <button
-              onClick={signOut}
-              className="p-2 bg-gradient-to-b from-gray-200 to-gray-300 rounded-lg shadow-md border border-gray-400 active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] transition-all"
-              title="Sign out"
-            >
-              <LogOut size={16} className="text-gray-700" />
-            </button>
-          </>
+          </button>
         ) : (
           <button
             onClick={onLoginClick}

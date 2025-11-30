@@ -1,0 +1,207 @@
+import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { MapPin, Reply, ChevronDown, ChevronUp, Navigation, MessageCircle } from 'lucide-react';
+import { CheckIn, Reply as ReplyType } from '../types';
+import { VENUE_CATEGORIES } from '../types';
+
+interface CheckInWithDistance extends CheckIn {
+  distance?: number;
+  replies?: ReplyType[];
+}
+
+interface CheckInCardProps {
+  checkin: CheckInWithDistance;
+  onReply: (checkInId: string, username: string, venueName: string) => void;
+}
+
+// Mock replies for demo - would come from Supabase in production
+const getMockReplies = (checkInId: string): ReplyType[] => {
+  // Return empty for most, some mock replies for demo
+  if (Math.random() > 0.7) {
+    return [
+      {
+        id: `reply-1-${checkInId}`,
+        parent_id: checkInId,
+        user_id: 'user-1',
+        username: 'Sarah',
+        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+        content: 'Nice spot! 🔥',
+        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      },
+      {
+        id: `reply-2-${checkInId}`,
+        parent_id: checkInId,
+        user_id: 'user-2',
+        username: 'Mike',
+        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+        content: 'Been wanting to try this place!',
+        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      },
+    ];
+  }
+  return [];
+};
+
+export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies] = useState<ReplyType[]>(() => getMockReplies(checkin.id));
+
+  const category = VENUE_CATEGORIES.find((c) => c.id === checkin.venue?.category);
+  const timeAgo = formatDistanceToNow(new Date(checkin.checked_in_at), {
+    addSuffix: true,
+  });
+  const distanceText =
+    checkin.distance !== undefined && checkin.distance !== Infinity
+      ? checkin.distance < 1
+        ? `${Math.round(checkin.distance * 5280)} ft away`
+        : `${checkin.distance.toFixed(1)} mi away`
+      : null;
+
+  const replyCount = replies.length;
+
+  return (
+    <div className="bg-white rounded-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-gray-300 overflow-hidden">
+      {/* Main Check-in */}
+      <div className="p-3">
+        <div className="flex gap-3">
+          {/* Avatar */}
+          <img
+            src={
+              checkin.user?.avatar_url ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${checkin.user?.username}`
+            }
+            alt={checkin.user?.username}
+            className="w-12 h-12 rounded-full flex-shrink-0 border-2 border-gray-300 shadow-md"
+          />
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="font-bold text-gray-900"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
+                {checkin.user?.username}
+              </span>
+              <span
+                className="text-gray-600 text-xs"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
+                checked in at
+              </span>
+            </div>
+
+            {/* Venue */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg drop-shadow">{category?.icon || '📍'}</span>
+              <div className="flex-1 min-w-0">
+                <h3
+                  className="font-bold text-gray-900 truncate text-sm"
+                  style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+                >
+                  {checkin.venue?.name}
+                </h3>
+                {checkin.venue?.verified && (
+                  <span className="text-blue-600 text-xs">✓ Verified</span>
+                )}
+              </div>
+            </div>
+
+            {/* Comment */}
+            {checkin.comment && (
+              <p
+                className="text-gray-800 mb-2 text-sm"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
+                {checkin.comment}
+              </p>
+            )}
+
+            {/* Metadata */}
+            <div className="flex items-center flex-wrap gap-2 text-[10px] text-gray-600">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-b from-gray-100 to-gray-200 rounded border border-gray-300 shadow-sm">
+                <MapPin size={10} />
+                {category?.name || 'Other'}
+              </span>
+              {distanceText && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-b from-blue-50 to-blue-100 rounded border border-blue-200 shadow-sm text-blue-700">
+                  <Navigation size={10} />
+                  {distanceText}
+                </span>
+              )}
+              <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+                {timeAgo}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 mt-2">
+              <button
+                onClick={() =>
+                  onReply(
+                    checkin.id,
+                    checkin.user?.username || 'Anonymous',
+                    checkin.venue?.name || 'Unknown'
+                  )
+                }
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
+              >
+                <Reply size={12} />
+                Reply
+              </button>
+
+              {/* Reply Count Toggle */}
+              {replyCount > 0 && (
+                <button
+                  onClick={() => setShowReplies(!showReplies)}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                >
+                  <MessageCircle size={12} />
+                  {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                  {showReplies ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Replies Section - Accordion */}
+      {showReplies && replies.length > 0 && (
+        <div className="bg-gradient-to-b from-gray-50 to-gray-100 border-t border-gray-200">
+          {replies.map((reply, index) => {
+            const replyTimeAgo = formatDistanceToNow(new Date(reply.created_at), {
+              addSuffix: true,
+            });
+            return (
+              <div
+                key={reply.id}
+                className={`flex gap-2 p-3 pl-8 ${
+                  index !== replies.length - 1 ? 'border-b border-gray-200' : ''
+                }`}
+              >
+                {/* Reply connector line */}
+                <div className="absolute left-6 w-4 h-4 border-l-2 border-b-2 border-gray-300 rounded-bl" />
+                
+                <img
+                  src={reply.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.username}`}
+                  alt={reply.username}
+                  className="w-8 h-8 rounded-full flex-shrink-0 border border-gray-300"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 text-sm">{reply.username}</span>
+                    <span className="text-[10px] text-gray-500">{replyTimeAgo}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-0.5">{reply.content}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

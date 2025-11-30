@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { MapPin, MessageCircle, Reply, Globe, Navigation } from 'lucide-react';
+import { Globe, Navigation, MessageCircle } from 'lucide-react';
 import { CheckIn, Location } from '../types';
-import { VENUE_CATEGORIES } from '../types';
+import CheckInCard from './CheckInCard';
 
 // Distance filter options in miles
 const DISTANCE_FILTERS = [
@@ -164,115 +163,14 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
             </div>
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto space-y-2">
-            {filteredCheckins.map((checkin) => {
-              const category = VENUE_CATEGORIES.find((c) => c.id === checkin.venue?.category);
-              const timeAgo = formatDistanceToNow(new Date(checkin.checked_in_at), {
-                addSuffix: true,
-              });
-              const distanceText =
-                checkin.distance !== undefined && checkin.distance !== Infinity
-                  ? checkin.distance < 1
-                    ? `${Math.round(checkin.distance * 5280)} ft away`
-                    : `${checkin.distance.toFixed(1)} mi away`
-                  : null;
-
-              return (
-                <div
-                  key={checkin.id}
-                  className="bg-white rounded-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-gray-300 p-3 hover:shadow-[inset_0_1px_3px_rgba(0,0,0,0.15)] transition-all"
-                >
-                  <div className="flex gap-3">
-                    {/* Avatar */}
-                    <img
-                      src={
-                        checkin.user?.avatar_url ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${checkin.user?.username}`
-                      }
-                      alt={checkin.user?.username}
-                      className="w-12 h-12 rounded-full flex-shrink-0 border-2 border-gray-300 shadow-md"
-                    />
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="font-bold text-gray-900"
-                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
-                        >
-                          {checkin.user?.username}
-                        </span>
-                        <span
-                          className="text-gray-600 text-xs"
-                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
-                        >
-                          checked in at
-                        </span>
-                      </div>
-
-                      {/* Venue */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg drop-shadow">{category?.icon || '📍'}</span>
-                        <div className="flex-1 min-w-0">
-                          <h3
-                            className="font-bold text-gray-900 truncate text-sm"
-                            style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
-                          >
-                            {checkin.venue?.name}
-                          </h3>
-                          {checkin.venue?.verified && (
-                            <span className="text-blue-600 text-xs">✓ Verified</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Comment */}
-                      {checkin.comment && (
-                        <p
-                          className="text-gray-800 mb-2 text-sm"
-                          style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
-                        >
-                          {checkin.comment}
-                        </p>
-                      )}
-
-                      {/* Metadata */}
-                      <div className="flex items-center flex-wrap gap-2 text-[10px] text-gray-600">
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-b from-gray-100 to-gray-200 rounded border border-gray-300 shadow-sm">
-                          <MapPin size={10} />
-                          {category?.name || 'Other'}
-                        </span>
-                        {distanceText && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-b from-blue-50 to-blue-100 rounded border border-blue-200 shadow-sm text-blue-700">
-                            <Navigation size={10} />
-                            {distanceText}
-                          </span>
-                        )}
-                        <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
-                          {timeAgo}
-                        </span>
-                      </div>
-
-                      {/* Reply Button */}
-                      <button
-                        onClick={() =>
-                          onReply(
-                            checkin.id,
-                            checkin.user?.username || 'Anonymous',
-                            checkin.venue?.name || 'Unknown'
-                          )
-                        }
-                        className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                        style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}
-                      >
-                        <Reply size={12} />
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="max-w-2xl mx-auto space-y-3">
+            {filteredCheckins.map((checkin) => (
+              <CheckInCard
+                key={checkin.id}
+                checkin={checkin}
+                onReply={onReply}
+              />
+            ))}
           </div>
         )}
       </div>

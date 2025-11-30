@@ -6,6 +6,7 @@ import ActivityFeed from './components/ActivityFeed';
 import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
 import ReplyModal from './components/ReplyModal';
+import ProfilePage from './components/ProfilePage';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './contexts/AuthContext';
 import { Venue, CheckIn, Message, Notification as NotificationType } from './types';
@@ -23,6 +24,7 @@ function App() {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
+  const [showProfilePage, setShowProfilePage] = useState(false);
   const [replyTo, setReplyTo] = useState<{
     id: string;
     username: string;
@@ -338,7 +340,10 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-[#c5ccd4]">
-      <Header onLoginClick={() => setShowAuthModal(true)} />
+      <Header 
+        onLoginClick={() => setShowAuthModal(true)} 
+        onProfileClick={() => setShowProfilePage(true)}
+      />
 
       {/* Tab Navigation */}
       <div className="flex border-b-2 border-gray-400 bg-gradient-to-b from-[#6d84a3] to-[#4d6580] shadow-lg">
@@ -450,6 +455,11 @@ function App() {
           }}
           onSend={handleSendReply}
         />
+      )}
+
+      {/* Profile Page */}
+      {showProfilePage && (
+        <ProfilePage onClose={() => setShowProfilePage(false)} />
       )}
     </div>
   );
