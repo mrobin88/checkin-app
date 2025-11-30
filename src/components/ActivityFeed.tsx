@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Globe, Navigation, MessageCircle } from 'lucide-react';
+import { Globe, Navigation, MessageCircle, MapPin } from 'lucide-react';
 import { CheckIn, Location } from '../types';
 import CheckInCard from './CheckInCard';
 

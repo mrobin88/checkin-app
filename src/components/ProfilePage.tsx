@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  User,
   MapPin,
   Users,
   Flame,
@@ -12,7 +11,7 @@ import {
   Calendar,
   TrendingUp,
 } from 'lucide-react';
-import { User as UserType, DEFAULT_FRIEND } from '../types';
+import { DEFAULT_FRIEND } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProfilePageProps {
