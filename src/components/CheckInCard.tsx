@@ -106,8 +106,6 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
         : `${checkin.distance.toFixed(1)} mi away`
       : null;
 
-  const replyCount = replies.length;
-
   return (
     <div className="bg-white rounded-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-gray-300 overflow-hidden">
       {/* Main Check-in */}
