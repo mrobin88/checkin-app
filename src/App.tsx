@@ -44,11 +44,12 @@ function App() {
   useEffect(() => {
     const loadMessages = async () => {
       try {
-        // Try to fetch from Supabase
+        // Try to fetch from Supabase - only parent messages (not replies)
         const { data, error } = await supabase
           .from('messages')
           .select('*')
           .eq('is_deleted', false)
+          .is('parent_message_id', null) // Only get top-level messages, not replies
           .order('created_at', { ascending: false })
           .limit(50);
 
@@ -61,6 +62,7 @@ function App() {
             comment: msg.content,
             checked_in_at: msg.created_at,
             geohash: msg.geohash,
+            reply_count: msg.reply_count || 0, // Include reply count
             user: {
               id: msg.user_id,
               username: msg.username,
@@ -104,7 +106,7 @@ function App() {
 
     loadMessages();
 
-    // Subscribe to real-time messages
+    // Subscribe to real-time messages (only top-level check-ins, not replies)
     const messagesSubscription = supabase
       .channel('messages_channel')
       .on(
@@ -114,6 +116,12 @@ function App() {
           console.log('New message received:', payload);
           const newMsg = payload.new as Message;
 
+          // Only add to feed if it's a check-in, not a reply
+          if (newMsg.parent_message_id) {
+            console.log('Skipping reply, not adding to main feed');
+            return;
+          }
+
           // Convert to CheckIn format and add to state
           const newCheckin: CheckIn = {
             id: newMsg.id,
@@ -122,6 +130,7 @@ function App() {
             comment: newMsg.content,
             checked_in_at: newMsg.created_at,
             geohash: newMsg.geohash,
+            reply_count: 0,
             user: {
               id: newMsg.user_id,
               username: newMsg.username,

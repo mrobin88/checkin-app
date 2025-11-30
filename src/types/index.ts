@@ -19,6 +19,7 @@ export interface CheckIn {
   comment?: string;
   checked_in_at: string;
   geohash: string;
+  reply_count?: number;
   user?: User;
   venue?: Venue;
 }
