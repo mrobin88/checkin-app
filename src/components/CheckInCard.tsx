@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MapPin, Reply, ChevronDown, ChevronUp, Navigation, MessageCircle, Loader2 } from 'lucide-react';
+import {
+  MapPin,
+  Reply,
+  ChevronDown,
+  ChevronUp,
+  Navigation,
+  MessageCircle,
+  Loader2,
+} from 'lucide-react';
 import { CheckIn, Reply as ReplyType } from '../types';
 import { VENUE_CATEGORIES } from '../types';
 import { supabase } from '../lib/supabase';
@@ -176,9 +184,7 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
                   {distanceText}
                 </span>
               )}
-              <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
-                {timeAgo}
-              </span>
+              <span style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>{timeAgo}</span>
             </div>
 
             {/* Actions */}
@@ -227,9 +233,7 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
               <span className="ml-2 text-sm text-gray-500">Loading replies...</span>
             </div>
           ) : replies.length === 0 ? (
-            <div className="py-3 px-4 text-center text-sm text-gray-500">
-              No replies yet
-            </div>
+            <div className="py-3 px-4 text-center text-sm text-gray-500">No replies yet</div>
           ) : (
             replies.map((reply, index) => {
               const replyTimeAgo = formatDistanceToNow(new Date(reply.created_at), {
@@ -245,9 +249,12 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
                   {/* Reply thread line */}
                   <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-300" />
                   <div className="absolute left-3 top-6 w-2 h-0.5 bg-gray-300" />
-                  
+
                   <img
-                    src={reply.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.username}`}
+                    src={
+                      reply.avatar_url ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.username}`
+                    }
                     alt={reply.username}
                     className="w-8 h-8 rounded-full flex-shrink-0 border border-gray-300 ml-2"
                   />
@@ -267,4 +274,3 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
     </div>
   );
 }
-
