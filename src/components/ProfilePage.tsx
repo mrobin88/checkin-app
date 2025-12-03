@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MapPin,
   Users,
@@ -10,41 +10,206 @@ import {
   Award,
   Calendar,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
 import { DEFAULT_FRIEND } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface ProfilePageProps {
   onClose: () => void;
 }
 
+interface UserStats {
+  checkins: number;
+  places: number;
+  friends: number;
+  streak: number;
+  points: number;
+  mayorships: number;
+  weeklyCheckins: number;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  icon: string;
+  earned: boolean;
+  description: string;
+}
+
 export default function ProfilePage({ onClose }: ProfilePageProps) {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'stats' | 'friends' | 'achievements'>('stats');
-
-  // Mock data - would come from Supabase in production
-  const stats = {
-    checkins: 47,
-    places: 23,
-    friends: 12,
-    streak: 5,
-    points: 1250,
-    mayorships: 3,
-  };
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<UserStats>({
+    checkins: 0,
+    places: 0,
+    friends: 1, // Matthew Robin is always a friend
+    streak: 0,
+    points: 0,
+    mayorships: 0,
+    weeklyCheckins: 0,
+  });
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   const friends = [
     DEFAULT_FRIEND, // Tom from MySpace equivalent - always first!
-    // More friends would be fetched from Supabase
   ];
 
-  const achievements = [
-    { id: '1', name: 'First Check-in', icon: '🎉', earned: true, description: 'Check in for the first time' },
-    { id: '2', name: 'Coffee Lover', icon: '☕', earned: true, description: 'Visit 5 coffee shops' },
-    { id: '3', name: 'Streak Starter', icon: '🔥', earned: true, description: 'Get a 3-day streak' },
-    { id: '4', name: 'Explorer', icon: '🗺️', earned: false, description: 'Visit 50 unique places' },
-    { id: '5', name: 'Social Butterfly', icon: '🦋', earned: false, description: 'Make 10 friends' },
-    { id: '6', name: 'Mayor', icon: '👑', earned: false, description: 'Become mayor of a venue' },
-  ];
+  // Fetch real stats from Supabase
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get total check-ins count
+        const { count: totalCheckins } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .is('parent_message_id', null)
+          .eq('is_deleted', false);
+
+        // Get unique places count
+        const { data: placesData } = await supabase
+          .from('messages')
+          .select('venue_id')
+          .eq('user_id', user.id)
+          .is('parent_message_id', null)
+          .eq('is_deleted', false);
+        
+        const uniquePlaces = new Set(placesData?.map(p => p.venue_id) || []).size;
+
+        // Get weekly check-ins (last 7 days)
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        
+        const { count: weeklyCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .is('parent_message_id', null)
+          .eq('is_deleted', false)
+          .gte('created_at', weekAgo.toISOString());
+
+        // Calculate streak (consecutive days with check-ins)
+        const { data: recentCheckins } = await supabase
+          .from('messages')
+          .select('created_at')
+          .eq('user_id', user.id)
+          .is('parent_message_id', null)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        let streak = 0;
+        if (recentCheckins && recentCheckins.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const checkinDays = new Set<string>();
+          recentCheckins.forEach(c => {
+            const date = new Date(c.created_at);
+            date.setHours(0, 0, 0, 0);
+            checkinDays.add(date.toISOString());
+          });
+          
+          // Count consecutive days going back from today
+          const checkDate = new Date(today);
+          while (checkinDays.has(checkDate.toISOString())) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+        }
+
+        // Calculate points (10 per check-in + 5 bonus per unique place)
+        const points = (totalCheckins || 0) * 10 + uniquePlaces * 5;
+
+        setStats({
+          checkins: totalCheckins || 0,
+          places: uniquePlaces,
+          friends: 1, // Just Matthew Robin for now
+          streak,
+          points,
+          mayorships: 0, // TODO: Implement mayorships
+          weeklyCheckins: weeklyCount || 0,
+        });
+
+        // Calculate achievements based on real data
+        const earnedAchievements: Achievement[] = [
+          { 
+            id: '1', 
+            name: 'First Check-in', 
+            icon: '🎉', 
+            earned: (totalCheckins || 0) >= 1, 
+            description: 'Check in for the first time' 
+          },
+          { 
+            id: '2', 
+            name: 'Regular', 
+            icon: '☕', 
+            earned: (totalCheckins || 0) >= 5, 
+            description: 'Check in 5 times' 
+          },
+          { 
+            id: '3', 
+            name: 'Streak Starter', 
+            icon: '🔥', 
+            earned: streak >= 3, 
+            description: 'Get a 3-day streak' 
+          },
+          { 
+            id: '4', 
+            name: 'Explorer', 
+            icon: '🗺️', 
+            earned: uniquePlaces >= 10, 
+            description: 'Visit 10 unique places' 
+          },
+          { 
+            id: '5', 
+            name: 'Social Butterfly', 
+            icon: '🦋', 
+            earned: false, 
+            description: 'Make 10 friends' 
+          },
+          { 
+            id: '6', 
+            name: 'Power User', 
+            icon: '⚡', 
+            earned: (totalCheckins || 0) >= 25, 
+            description: '25 total check-ins' 
+          },
+          { 
+            id: '7', 
+            name: 'Week Warrior', 
+            icon: '🏆', 
+            earned: (weeklyCount || 0) >= 7, 
+            description: 'Check in 7 times in one week' 
+          },
+          { 
+            id: '8', 
+            name: 'Centurion', 
+            icon: '💯', 
+            earned: (totalCheckins || 0) >= 100, 
+            description: '100 total check-ins' 
+          },
+        ];
+
+        setAchievements(earnedAchievements);
+
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserStats();
+  }, [user?.id]);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
   const avatarUrl = user?.user_metadata?.avatar_url || 
@@ -95,14 +260,20 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
               <h2 className="text-xl font-bold text-gray-900">{displayName}</h2>
               <p className="text-sm text-gray-600">{user?.email || 'Guest User'}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="flex items-center gap-1 text-xs bg-gradient-to-b from-orange-100 to-orange-200 text-orange-700 px-2 py-1 rounded-full border border-orange-300">
-                  <Flame size={12} />
-                  {stats.streak} day streak
-                </span>
-                <span className="flex items-center gap-1 text-xs bg-gradient-to-b from-yellow-100 to-yellow-200 text-yellow-700 px-2 py-1 rounded-full border border-yellow-300">
-                  <Star size={12} />
-                  {stats.points} pts
-                </span>
+                {loading ? (
+                  <Loader2 size={16} className="animate-spin text-gray-400" />
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1 text-xs bg-gradient-to-b from-orange-100 to-orange-200 text-orange-700 px-2 py-1 rounded-full border border-orange-300">
+                      <Flame size={12} />
+                      {stats.streak} day streak
+                    </span>
+                    <span className="flex items-center gap-1 text-xs bg-gradient-to-b from-yellow-100 to-yellow-200 text-yellow-700 px-2 py-1 rounded-full border border-yellow-300">
+                      <Star size={12} />
+                      {stats.points} pts
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -110,15 +281,27 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3 mt-6">
             <div className="text-center p-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-              <p className="text-2xl font-bold text-gray-900">{stats.checkins}</p>
+              {loading ? (
+                <Loader2 size={20} className="mx-auto animate-spin text-gray-400" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">{stats.checkins}</p>
+              )}
               <p className="text-xs text-gray-600">Check-ins</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-              <p className="text-2xl font-bold text-gray-900">{stats.places}</p>
+              {loading ? (
+                <Loader2 size={20} className="mx-auto animate-spin text-gray-400" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">{stats.places}</p>
+              )}
               <p className="text-xs text-gray-600">Places</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-              <p className="text-2xl font-bold text-gray-900">{stats.friends}</p>
+              {loading ? (
+                <Loader2 size={20} className="mx-auto animate-spin text-gray-400" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">{stats.friends}</p>
+              )}
               <p className="text-xs text-gray-600">Friends</p>
             </div>
           </div>
@@ -172,7 +355,11 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
                       <p className="text-xs text-gray-500">This week</p>
                     </div>
                   </div>
-                  <p className="text-xl font-bold text-gray-900">12</p>
+                  {loading ? (
+                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-900">{stats.weeklyCheckins}</p>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

@@ -64,6 +64,8 @@ export async function fetchNearbyVenues(
   lng: number,
   radiusMeters: number = 1000
 ): Promise<OverpassVenue[]> {
+  console.log(`📍 Fetching venues near ${lat.toFixed(4)}, ${lng.toFixed(4)} (${radiusMeters}m radius)`);
+  
   // Overpass QL query to find nearby POIs
   const query = `
     [out:json][timeout:25];
@@ -81,6 +83,7 @@ export async function fetchNearbyVenues(
   `;
 
   try {
+    console.log('🌐 Calling Overpass API...');
     const response = await fetch(OVERPASS_API, {
       method: 'POST',
       body: query,
@@ -89,11 +92,15 @@ export async function fetchNearbyVenues(
       },
     });
 
+    console.log(`📡 Overpass response status: ${response.status}`);
+
     if (!response.ok) {
       throw new Error(`Overpass API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log(`📦 Got ${data.elements?.length || 0} raw elements from Overpass`);
+    
     const venues: OverpassVenue[] = [];
 
     for (const element of data.elements) {
@@ -122,9 +129,10 @@ export async function fetchNearbyVenues(
       return distA - distB;
     });
 
+    console.log(`✅ Returning ${venues.length} parsed venues`);
     return venues.slice(0, 50); // Limit to 50 venues
   } catch (error) {
-    console.error('Error fetching venues from Overpass:', error);
+    console.error('❌ Error fetching venues from Overpass:', error);
     throw error;
   }
 }
