@@ -1,13 +1,17 @@
 {
   "name": "checkin-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Social check-in app for discovering and sharing places with friends",
+  "author": "Matthew Robin",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "deploy": "npm run build && vercel --prod"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -34,6 +38,19 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vite-plugin-pwa": "^0.17.4"
+  },
+  "keywords": [
+    "check-in",
+    "social",
+    "location",
+    "pwa",
+    "foursquare",
+    "maps",
+    "friends",
+    "places"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matthewrobin/checkin-app"
   }
 }
-

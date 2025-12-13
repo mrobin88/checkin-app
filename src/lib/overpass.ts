@@ -19,43 +19,43 @@ function categorizeVenue(tags: Record<string, string>): string {
   if (tags.amenity === 'bar' || tags.amenity === 'pub') return 'bar';
   if (tags.amenity === 'fast_food') return 'restaurant';
   if (tags.amenity === 'ice_cream') return 'restaurant';
-  
+
   // Shopping
   if (tags.shop) return 'shopping';
   if (tags.amenity === 'marketplace') return 'shopping';
-  
+
   // Entertainment
   if (tags.amenity === 'cinema' || tags.amenity === 'theatre') return 'entertainment';
   if (tags.leisure === 'park' || tags.leisure === 'garden') return 'outdoors';
   if (tags.leisure === 'sports_centre' || tags.leisure === 'fitness_centre') return 'gym';
   if (tags.leisure === 'playground') return 'outdoors';
-  
+
   // Services
   if (tags.amenity === 'hospital' || tags.amenity === 'clinic') return 'health';
   if (tags.amenity === 'bank') return 'services';
   if (tags.amenity === 'post_office') return 'services';
   if (tags.amenity === 'library') return 'education';
   if (tags.amenity === 'school' || tags.amenity === 'university') return 'education';
-  
+
   // Transit
   if (tags.railway === 'station' || tags.amenity === 'bus_station') return 'transport';
   if (tags.aeroway === 'aerodrome') return 'transport';
-  
+
   // Tourism
   if (tags.tourism === 'museum' || tags.tourism === 'gallery') return 'entertainment';
   if (tags.tourism === 'attraction' || tags.tourism === 'viewpoint') return 'outdoors';
   if (tags.historic) return 'entertainment';
-  
+
   return 'other';
 }
 
 function formatAddress(tags: Record<string, string>): string | undefined {
   const parts: string[] = [];
-  
+
   if (tags['addr:housenumber']) parts.push(tags['addr:housenumber']);
   if (tags['addr:street']) parts.push(tags['addr:street']);
   if (tags['addr:city']) parts.push(tags['addr:city']);
-  
+
   return parts.length > 0 ? parts.join(' ') : undefined;
 }
 
@@ -64,8 +64,10 @@ export async function fetchNearbyVenues(
   lng: number,
   radiusMeters: number = 1000
 ): Promise<OverpassVenue[]> {
-  console.log(`📍 Fetching venues near ${lat.toFixed(4)}, ${lng.toFixed(4)} (${radiusMeters}m radius)`);
-  
+  console.log(
+    `📍 Fetching venues near ${lat.toFixed(4)}, ${lng.toFixed(4)} (${radiusMeters}m radius)`
+  );
+
   // Overpass QL query to find nearby POIs
   const query = `
     [out:json][timeout:25];
@@ -100,7 +102,7 @@ export async function fetchNearbyVenues(
 
     const data = await response.json();
     console.log(`📦 Got ${data.elements?.length || 0} raw elements from Overpass`);
-    
+
     const venues: OverpassVenue[] = [];
 
     for (const element of data.elements) {
@@ -152,4 +154,3 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
   return R * c;
 }
-

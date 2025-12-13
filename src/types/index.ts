@@ -10,6 +10,7 @@ export interface Venue {
   geohash: string;
   created_at: string;
   checkin_count?: number;
+  is_trending?: boolean;
 }
 
 export interface CheckIn {
@@ -49,11 +50,12 @@ export interface Notification {
   from_user_id: string;
   from_username: string;
   from_avatar_url?: string;
-  message_id: string;
+  message_id?: string;
   parent_message_id?: string;
-  notification_type: 'reply' | 'mention';
+  notification_type: 'reply' | 'mention' | 'friend_request' | 'friend_accepted' | 'trending_spot' | 'friend_checkin';
   content: string;
   venue_name?: string;
+  venue_id?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -66,12 +68,23 @@ export interface User {
   email?: string;
 }
 
-export interface Friend {
+export interface FriendRequest {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  updated_at?: string;
+  from_user?: User;
+  to_user?: User;
+}
+
+export interface Friendship {
   id: string;
   user_id: string;
   friend_id: string;
-  friend?: User;
   created_at: string;
+  friend?: User;
 }
 
 export interface UserProfile extends User {
@@ -81,6 +94,33 @@ export interface UserProfile extends User {
   places_count?: number;
   streak?: number;
   points?: number;
+  is_friend?: boolean;
+  has_pending_request?: boolean;
+  push_subscription?: string;
+}
+
+export interface UserSettings {
+  user_id: string;
+  notifications_enabled: boolean;
+  push_enabled: boolean;
+  friend_request_notifications: boolean;
+  friend_checkin_notifications: boolean;
+  trending_notifications: boolean;
+  reply_notifications: boolean;
+  privacy_mode: 'public' | 'friends_only' | 'private';
+  show_on_map: boolean;
+  show_checkin_history: boolean;
+}
+
+export interface TrendingSpot {
+  venue_id: string;
+  venue_name: string;
+  venue_category?: string;
+  venue_lat?: number;
+  venue_lng?: number;
+  checkin_count: number;
+  unique_users: number;
+  time_window_minutes: number;
 }
 
 // The "Tom from MySpace" - everyone follows this user by default
@@ -128,3 +168,17 @@ export const VENUE_CATEGORIES: VenueCategory[] = [
   { id: 'transport', name: 'Transport', icon: '🚇' },
   { id: 'other', name: 'Other', icon: '📍' },
 ];
+
+// Default user settings
+export const DEFAULT_USER_SETTINGS: UserSettings = {
+  user_id: '',
+  notifications_enabled: true,
+  push_enabled: true,
+  friend_request_notifications: true,
+  friend_checkin_notifications: true,
+  trending_notifications: true,
+  reply_notifications: true,
+  privacy_mode: 'public',
+  show_on_map: true,
+  show_checkin_history: true,
+};

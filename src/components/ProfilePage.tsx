@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   MapPin,
-  Users,
   Flame,
   Star,
   Settings,
@@ -11,10 +10,13 @@ import {
   Calendar,
   TrendingUp,
   Loader2,
+  Bookmark,
 } from 'lucide-react';
-import { DEFAULT_FRIEND } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import SettingsPage from './SettingsPage';
+import FriendsPageSimple from './FriendsPageSimple';
+import SavedVenues from './SavedVenues';
 
 interface ProfilePageProps {
   onClose: () => void;
@@ -40,8 +42,11 @@ interface Achievement {
 
 export default function ProfilePage({ onClose }: ProfilePageProps) {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'stats' | 'friends' | 'achievements'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'friends' | 'achievements' | 'saved'>('stats');
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const [stats, setStats] = useState<UserStats>({
     checkins: 0,
     places: 0,
@@ -52,10 +57,6 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
     weeklyCheckins: 0,
   });
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-
-  const friends = [
-    DEFAULT_FRIEND, // Tom from MySpace equivalent - always first!
-  ];
 
   // Fetch real stats from Supabase
   useEffect(() => {
@@ -81,13 +82,13 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
           .eq('user_id', user.id)
           .is('parent_message_id', null)
           .eq('is_deleted', false);
-        
-        const uniquePlaces = new Set(placesData?.map(p => p.venue_id) || []).size;
+
+        const uniquePlaces = new Set(placesData?.map((p) => p.venue_id) || []).size;
 
         // Get weekly check-ins (last 7 days)
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        
+
         const { count: weeklyCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
@@ -110,14 +111,14 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
         if (recentCheckins && recentCheckins.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          
+
           const checkinDays = new Set<string>();
-          recentCheckins.forEach(c => {
+          recentCheckins.forEach((c) => {
             const date = new Date(c.created_at);
             date.setHours(0, 0, 0, 0);
             checkinDays.add(date.toISOString());
           });
-          
+
           // Count consecutive days going back from today
           const checkDate = new Date(today);
           while (checkinDays.has(checkDate.toISOString())) {
@@ -126,13 +127,19 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
           }
         }
 
+        // Get friend count (simple query)
+        const { count: friendCount } = await supabase
+          .from('friendships')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
         // Calculate points (10 per check-in + 5 bonus per unique place)
         const points = (totalCheckins || 0) * 10 + uniquePlaces * 5;
 
         setStats({
           checkins: totalCheckins || 0,
           places: uniquePlaces,
-          friends: 1, // Just Matthew Robin for now
+          friends: friendCount || 0,
           streak,
           points,
           mayorships: 0, // TODO: Implement mayorships
@@ -141,66 +148,65 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
 
         // Calculate achievements based on real data
         const earnedAchievements: Achievement[] = [
-          { 
-            id: '1', 
-            name: 'First Check-in', 
-            icon: '🎉', 
-            earned: (totalCheckins || 0) >= 1, 
-            description: 'Check in for the first time' 
+          {
+            id: '1',
+            name: 'First Check-in',
+            icon: '🎉',
+            earned: (totalCheckins || 0) >= 1,
+            description: 'Check in for the first time',
           },
-          { 
-            id: '2', 
-            name: 'Regular', 
-            icon: '☕', 
-            earned: (totalCheckins || 0) >= 5, 
-            description: 'Check in 5 times' 
+          {
+            id: '2',
+            name: 'Regular',
+            icon: '☕',
+            earned: (totalCheckins || 0) >= 5,
+            description: 'Check in 5 times',
           },
-          { 
-            id: '3', 
-            name: 'Streak Starter', 
-            icon: '🔥', 
-            earned: streak >= 3, 
-            description: 'Get a 3-day streak' 
+          {
+            id: '3',
+            name: 'Streak Starter',
+            icon: '🔥',
+            earned: streak >= 3,
+            description: 'Get a 3-day streak',
           },
-          { 
-            id: '4', 
-            name: 'Explorer', 
-            icon: '🗺️', 
-            earned: uniquePlaces >= 10, 
-            description: 'Visit 10 unique places' 
+          {
+            id: '4',
+            name: 'Explorer',
+            icon: '🗺️',
+            earned: uniquePlaces >= 10,
+            description: 'Visit 10 unique places',
           },
-          { 
-            id: '5', 
-            name: 'Social Butterfly', 
-            icon: '🦋', 
-            earned: false, 
-            description: 'Make 10 friends' 
+          {
+            id: '5',
+            name: 'Social Butterfly',
+            icon: '🦋',
+            earned: (friendCount || 0) >= 10,
+            description: 'Make 10 friends',
           },
-          { 
-            id: '6', 
-            name: 'Power User', 
-            icon: '⚡', 
-            earned: (totalCheckins || 0) >= 25, 
-            description: '25 total check-ins' 
+          {
+            id: '6',
+            name: 'Power User',
+            icon: '⚡',
+            earned: (totalCheckins || 0) >= 25,
+            description: '25 total check-ins',
           },
-          { 
-            id: '7', 
-            name: 'Week Warrior', 
-            icon: '🏆', 
-            earned: (weeklyCount || 0) >= 7, 
-            description: 'Check in 7 times in one week' 
+          {
+            id: '7',
+            name: 'Week Warrior',
+            icon: '🏆',
+            earned: (weeklyCount || 0) >= 7,
+            description: 'Check in 7 times in one week',
           },
-          { 
-            id: '8', 
-            name: 'Centurion', 
-            icon: '💯', 
-            earned: (totalCheckins || 0) >= 100, 
-            description: '100 total check-ins' 
+          {
+            id: '8',
+            name: 'Centurion',
+            icon: '💯',
+            earned: (totalCheckins || 0) >= 100,
+            description: '100 total check-ins',
           },
         ];
 
         setAchievements(earnedAchievements);
-
       } catch (error) {
         console.error('Error fetching user stats:', error);
       } finally {
@@ -212,13 +218,29 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
   }, [user?.id]);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
-  const avatarUrl = user?.user_metadata?.avatar_url || 
+  const avatarUrl =
+    user?.user_metadata?.avatar_url ||
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   const handleSignOut = async () => {
     await signOut();
     onClose();
   };
+
+  // Show Settings page
+  if (showSettings) {
+    return <SettingsPage onClose={() => setShowSettings(false)} />;
+  }
+
+  // Show Friends page
+  if (showFriends) {
+    return <FriendsPageSimple onClose={() => setShowFriends(false)} />;
+  }
+
+  // Show Saved Venues page
+  if (showSaved) {
+    return <SavedVenues onClose={() => setShowSaved(false)} />;
+  }
 
   return (
     <div className="fixed inset-0 bg-[#c5ccd4] z-50 flex flex-col overflow-hidden">
@@ -296,14 +318,17 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
               )}
               <p className="text-xs text-gray-600">Places</p>
             </div>
-            <div className="text-center p-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+            <button
+              onClick={() => setShowFriends(true)}
+              className="text-center p-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-blue-300 transition-colors"
+            >
               {loading ? (
                 <Loader2 size={20} className="mx-auto animate-spin text-gray-400" />
               ) : (
                 <p className="text-2xl font-bold text-gray-900">{stats.friends}</p>
               )}
               <p className="text-xs text-gray-600">Friends</p>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -313,7 +338,7 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
         <div className="flex bg-white rounded-xl shadow border border-gray-300 p-1">
           {[
             { id: 'stats', label: 'Stats', icon: TrendingUp },
-            { id: 'friends', label: 'Friends', icon: Users },
+            { id: 'saved', label: 'Saved', icon: Bookmark },
             { id: 'achievements', label: 'Badges', icon: Award },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -321,7 +346,13 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                onClick={() => {
+                  if (tab.id === 'saved') {
+                    setShowSaved(true);
+                  } else {
+                    setActiveTab(tab.id as typeof activeTab);
+                  }
+                }}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${
                   isActive
                     ? 'bg-gradient-to-b from-[#5ba4e5] to-[#3b7fc4] text-white shadow-md'
@@ -390,63 +421,6 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
           </div>
         )}
 
-        {activeTab === 'friends' && (
-          <div className="space-y-3">
-            {/* Add Friends Button */}
-            <button className="w-full bg-gradient-to-b from-[#5ba4e5] to-[#3b7fc4] text-white font-bold py-3 rounded-xl shadow-md border border-[#2d5f9f] flex items-center justify-center gap-2">
-              <Users size={18} />
-              Find Friends
-            </button>
-
-            {/* Friends List */}
-            <div className="bg-white rounded-xl shadow border border-gray-300 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900">Friends</h3>
-                <span className="text-xs text-gray-500">{friends.length} friends</span>
-              </div>
-              {friends.map((friend, index) => (
-                <div
-                  key={friend.id}
-                  className={`flex items-center gap-3 p-4 ${
-                    index !== friends.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
-                >
-                  <img
-                    src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`}
-                    alt={friend.username}
-                    className="w-12 h-12 rounded-full border-2 border-gray-300"
-                  />
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900">{friend.username}</p>
-                    {friend.id === DEFAULT_FRIEND.id && (
-                      <p className="text-xs text-blue-600">✓ CheckIn Team</p>
-                    )}
-                  </div>
-                  <ChevronRight size={18} className="text-gray-400" />
-                </div>
-              ))}
-            </div>
-
-            {/* Tom's Welcome */}
-            <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-              <div className="flex items-start gap-3">
-                <img
-                  src={DEFAULT_FRIEND.avatar_url}
-                  alt={DEFAULT_FRIEND.username}
-                  className="w-10 h-10 rounded-full border-2 border-blue-300"
-                />
-                <div>
-                  <p className="font-medium text-blue-900">Welcome to CheckIn! 👋</p>
-                  <p className="text-sm text-blue-700 mt-1">
-                    I'm {DEFAULT_FRIEND.username}, and I'm your first friend! Check in at cool places and 
-                    I'll see you around. Happy exploring!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'achievements' && (
           <div className="grid grid-cols-2 gap-3">
             {achievements.map((achievement) => (
@@ -459,7 +433,11 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
                 }`}
               >
                 <div className="text-3xl mb-2">{achievement.icon}</div>
-                <p className={`font-bold text-sm ${achievement.earned ? 'text-gray-900' : 'text-gray-500'}`}>
+                <p
+                  className={`font-bold text-sm ${
+                    achievement.earned ? 'text-gray-900' : 'text-gray-500'
+                  }`}
+                >
                   {achievement.name}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
@@ -476,7 +454,10 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
 
       {/* Settings Button */}
       <div className="flex-shrink-0 p-4 border-t border-gray-300 bg-white">
-        <button className="w-full flex items-center justify-between p-4 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-300">
+        <button
+          onClick={() => setShowSettings(true)}
+          className="w-full flex items-center justify-between p-4 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-300 active:bg-gray-200 transition-colors"
+        >
           <div className="flex items-center gap-3">
             <Settings size={20} className="text-gray-600" />
             <span className="font-medium text-gray-900">Settings</span>
@@ -487,4 +468,3 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
     </div>
   );
 }
-

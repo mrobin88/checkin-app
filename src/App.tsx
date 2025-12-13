@@ -7,13 +7,14 @@ import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
 import ReplyModal from './components/ReplyModal';
 import ProfilePage from './components/ProfilePage';
+import TrendingSpots from './components/TrendingSpots';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './contexts/AuthContext';
-import { Venue, CheckIn, Message, Notification as NotificationType } from './types';
+import { Venue, CheckIn, Message } from './types';
 import { supabase } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
 import { encode as encodeGeohash } from './lib/geohash';
-import { MapPin, Activity } from 'lucide-react';
+import { MapPin, Activity, TrendingUp } from 'lucide-react';
 
 function App() {
   const { location, error: locationError } = useGeolocation();
@@ -30,8 +31,15 @@ function App() {
     username: string;
     venueName: string;
   } | null>(null);
-  const [activeTab, setActiveTab] = useState<'map' | 'feed'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'feed' | 'trending'>('map');
   const [loading, setLoading] = useState(true);
+
+  // Request notification permission on load (simple)
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   // Fetch nearby venues
   useEffect(() => {
@@ -156,42 +164,8 @@ function App() {
       )
       .subscribe();
 
-    // Subscribe to notifications
-    const notificationsSubscription = supabase
-      .channel('notifications_channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: user ? `user_id=eq.${user.id}` : `user_id=eq.anonymous`,
-        },
-        (payload) => {
-          const notification = payload.new as NotificationType;
-          console.log('New notification:', notification);
-
-          // Show browser alert
-          if (Notification.permission === 'granted') {
-            new Notification(`Reply from @${notification.from_username}`, {
-              body: notification.content,
-              icon: notification.from_avatar_url,
-            });
-          } else {
-            alert(`💬 Reply from @${notification.from_username}:\n"${notification.content}"`);
-          }
-        }
-      )
-      .subscribe();
-
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
     return () => {
       messagesSubscription.unsubscribe();
-      notificationsSubscription.unsubscribe();
     };
   }, [user]);
 
@@ -200,7 +174,7 @@ function App() {
       setLoading(true);
 
       // Try fetching from OpenStreetMap first (real data!)
-      const overpassVenues = await fetchOverpassVenues(lat, lng, 1000); // 5km radius for easier testing
+      const overpassVenues = await fetchOverpassVenues(lat, lng, 1000); // 1km radius
 
       // Convert to our Venue format
       const venues: Venue[] = overpassVenues.map((v) => ({
@@ -274,6 +248,51 @@ function App() {
     }
 
     console.log('✅ Reply sent!');
+  };
+
+  const handleRefreshFeed = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('is_deleted', false)
+        .is('parent_message_id', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!error && data) {
+        const formattedCheckins: CheckIn[] = data.map((msg: Message) => ({
+          id: msg.id,
+          user_id: msg.user_id,
+          venue_id: msg.venue_id,
+          comment: msg.content,
+          checked_in_at: msg.created_at,
+          geohash: msg.geohash,
+          reply_count: msg.reply_count || 0,
+          user: {
+            id: msg.user_id,
+            username: msg.username,
+            avatar_url: msg.avatar_url,
+            created_at: msg.created_at,
+          },
+          venue: {
+            id: msg.venue_id,
+            name: msg.venue_name,
+            category: msg.venue_category || 'other',
+            lat: msg.venue_lat || 0,
+            lng: msg.venue_lng || 0,
+            address: msg.venue_address || '',
+            created_by: '',
+            verified: false,
+            geohash: msg.geohash,
+            created_at: msg.created_at,
+          },
+        }));
+        setCheckins(formattedCheckins);
+      }
+    } catch (err) {
+      console.error('Error refreshing:', err);
+    }
   };
 
   const handleCheckIn = async (venueId: string, comment?: string) => {
@@ -388,6 +407,22 @@ function App() {
           <Activity size={18} />
           Activity
         </button>
+        <button
+          onClick={() => setActiveTab('trending')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
+            activeTab === 'trending'
+              ? 'bg-gradient-to-b from-white to-[#e8eef5] text-gray-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] border-t-2 border-white'
+              : 'text-white active:bg-black/20'
+          }`}
+          style={
+            activeTab === 'trending'
+              ? { textShadow: '0 1px 0 rgba(255,255,255,0.8)' }
+              : { textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }
+          }
+        >
+          <TrendingUp size={18} />
+          Hot
+        </button>
       </div>
 
       {/* Location Prompt */}
@@ -425,8 +460,56 @@ function App() {
               <VenueList venues={venues} loading={loading} onVenueClick={handleVenueClick} />
             </div>
           </div>
+        ) : activeTab === 'feed' ? (
+          <ActivityFeed 
+            checkins={checkins} 
+            userLocation={location} 
+            onReply={handleReply}
+            onRefresh={handleRefreshFeed}
+          />
         ) : (
-          <ActivityFeed checkins={checkins} userLocation={location} onReply={handleReply} />
+          <div className="h-full overflow-y-auto p-4 space-y-4">
+            <TrendingSpots
+              onVenueClick={(venueId) => {
+                // Find venue in list or create placeholder
+                const venue = venues.find((v) => v.id === venueId);
+                if (venue) {
+                  handleVenueClick(venue);
+                } else {
+                  // Switch to feed and filter by venue
+                  setActiveTab('feed');
+                }
+              }}
+            />
+
+            {/* Recent activity in trending spots */}
+            <div className="bg-white rounded-xl shadow border border-gray-300 p-4">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Activity size={18} className="text-blue-500" />
+                Recent at Hot Spots
+              </h3>
+              <div className="space-y-3">
+                {checkins.slice(0, 5).map((checkin) => (
+                  <div key={checkin.id} className="flex items-center gap-3">
+                    <img
+                      src={
+                        checkin.user?.avatar_url ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${checkin.user?.username}`
+                      }
+                      alt={checkin.user?.username}
+                      className="w-8 h-8 rounded-full border border-gray-300"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 truncate">
+                        <span className="font-medium">{checkin.user?.username}</span> at{' '}
+                        <span className="text-blue-600">{checkin.venue?.name}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

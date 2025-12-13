@@ -9,7 +9,7 @@
 
   color-scheme: light;
   color: rgba(0, 0, 0, 0.87);
-  background-color: #ffffff;
+  background-color: #c5ccd4;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,12 +28,27 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow: hidden;
+  background-color: #c5ccd4;
 }
 
 #root {
   width: 100%;
   height: 100vh;
   margin: 0 auto;
+}
+
+/* PWA standalone mode adjustments */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  #root {
+    height: 100%;
+  }
 }
 
 /* Animations */
@@ -46,26 +61,154 @@ body {
   }
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(100%);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
-.animate-fadeIn {
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation classes */
+.animate-fadeIn,
+.animate-fade-in {
   animation: fadeIn 0.2s ease-out;
 }
 
-.animate-slideUp {
+.animate-fadeOut,
+.animate-fade-out {
+  animation: fadeOut 0.2s ease-out;
+}
+
+.animate-slideUp,
+.animate-slide-up {
   animation: slideUp 0.3s ease-out;
+}
+
+.animate-slideDown,
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-scaleIn,
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Delayed animations for staggered effects */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -81,6 +224,16 @@ body {
   background: #94a3b8;
 }
 
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* MapLibre overrides */
 .maplibregl-ctrl-attrib {
   font-size: 10px;
@@ -89,13 +242,50 @@ body {
 
 .maplibregl-popup-content {
   padding: 0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
 .maplibregl-popup-close-button {
   font-size: 18px;
   padding: 4px 8px;
+  color: #666;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Custom map marker animation */
+.map-marker-pulse {
+  animation: markerPulse 2s infinite;
+}
+
+@keyframes markerPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(91, 164, 229, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(91, 164, 229, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(91, 164, 229, 0);
+  }
+}
+
+/* Hot spot animation */
+.hot-spot-glow {
+  animation: hotGlow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes hotGlow {
+  from {
+    box-shadow: 0 0 10px rgba(251, 146, 60, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.8);
+  }
 }
 
 /* Touch improvements for mobile */
@@ -106,14 +296,100 @@ body {
   
   * {
     -webkit-touch-callout: none;
+    user-select: none;
+  }
+  
+  input, textarea {
+    user-select: text;
   }
 }
 
 /* iOS safe area support */
 @supports (padding: env(safe-area-inset-top)) {
-  body {
+  .safe-top {
     padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
+/* Glassmorphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 25%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #5ba4e5;
+  ring-offset: 2px;
+}
+
+/* Button press effect */
+.press-effect:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease-out;
+}
+
+/* Notification badge animation */
+.notification-badge {
+  animation: badgePop 0.3s ease-out;
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* iOS-style rubber band scrolling */
+.rubber-band {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Prevent text selection on interactive elements */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hardware acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}

@@ -12,6 +12,8 @@ import {
 import { CheckIn, Reply as ReplyType } from '../types';
 import { VENUE_CATEGORIES } from '../types';
 import { supabase } from '../lib/supabase';
+import LikeButton from './LikeButton';
+import ShareButton from './ShareButton';
 
 interface CheckInWithDistance extends CheckIn {
   distance?: number;
@@ -189,6 +191,8 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
 
             {/* Actions */}
             <div className="flex items-center gap-3 mt-2">
+              <LikeButton messageId={checkin.id} />
+              
               <button
                 onClick={() =>
                   onReply(
@@ -219,6 +223,11 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
                   {showReplies ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
               )}
+              
+              <ShareButton
+                title={`${checkin.user?.username} at ${checkin.venue?.name}`}
+                text={checkin.comment || `Checked in at ${checkin.venue?.name}`}
+              />
             </div>
           </div>
         </div>

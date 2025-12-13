@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, MapPin, AlertCircle } from 'lucide-react';
+import { X, MapPin, AlertCircle, Building2 } from 'lucide-react';
 import { Venue, Location } from '../types';
 import { VENUE_CATEGORIES } from '../types';
 import { distance } from '../lib/geohash';
+import ClaimBusinessModal from './ClaimBusinessModal';
 
 interface CheckInModalProps {
   venue: Venue;
@@ -14,6 +15,7 @@ interface CheckInModalProps {
 export default function CheckInModal({ venue, userLocation, onClose, onCheckIn }: CheckInModalProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   const category = VENUE_CATEGORIES.find(c => c.id === venue.category);
   
@@ -111,6 +113,16 @@ export default function CheckInModal({ venue, userLocation, onClose, onCheckIn }
           )}
         </div>
 
+        {/* Claim Business Button */}
+        <button
+          type="button"
+          onClick={() => setShowClaimModal(true)}
+          className="w-full mb-4 py-2 px-3 bg-gradient-to-b from-purple-50 to-purple-100 text-purple-700 font-medium text-sm rounded-lg border border-purple-200 flex items-center justify-center gap-2 hover:from-purple-100 hover:to-purple-200"
+        >
+          <Building2 size={16} />
+          Own this business? Claim it
+        </button>
+
         {/* Check-in Form */}
         <form onSubmit={handleSubmit}>
           <textarea
@@ -145,6 +157,15 @@ export default function CheckInModal({ venue, userLocation, onClose, onCheckIn }
             </button>
           </div>
         </form>
+
+        {/* Claim Business Modal */}
+        {showClaimModal && (
+          <ClaimBusinessModal
+            venueId={venue.id}
+            venueName={venue.name}
+            onClose={() => setShowClaimModal(false)}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Globe, Navigation, MessageCircle, MapPin } from 'lucide-react';
+import { Globe, Navigation, MessageCircle, MapPin, RefreshCw } from 'lucide-react';
 import { CheckIn, Location } from '../types';
 import CheckInCard from './CheckInCard';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 
 // Distance filter options in miles
 const DISTANCE_FILTERS = [
@@ -35,10 +36,16 @@ interface ActivityFeedProps {
   checkins: CheckIn[];
   userLocation: Location | null;
   onReply: (checkInId: string, originalUser: string, venueName: string) => void;
+  onRefresh?: () => Promise<void>;
 }
 
-export default function ActivityFeed({ checkins, userLocation, onReply }: ActivityFeedProps) {
+export default function ActivityFeed({ checkins, userLocation, onReply, onRefresh }: ActivityFeedProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('nearby');
+  
+  const { containerRef, isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: onRefresh || (async () => {}),
+    threshold: 80,
+  });
 
   // Filter and sort check-ins by distance
   const filteredCheckins: CheckInWithDistance[] = useMemo(() => {
@@ -141,7 +148,28 @@ export default function ActivityFeed({ checkins, userLocation, onReply }: Activi
       </div>
 
       {/* Check-ins List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-3 space-y-2 relative">
+        {/* Pull to Refresh Indicator */}
+        {(isPulling || isRefreshing) && (
+          <div
+            className="absolute top-0 left-0 right-0 flex items-center justify-center py-2 bg-gradient-to-b from-blue-50 to-transparent z-10 transition-all"
+            style={{
+              transform: `translateY(${pullDistance}px)`,
+              opacity: Math.min(pullDistance / 80, 1),
+            }}
+          >
+            <RefreshCw
+              size={20}
+              className={`text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{
+                transform: `rotate(${pullDistance * 3}deg)`,
+              }}
+            />
+            <span className="ml-2 text-sm text-blue-700 font-medium">
+              {isRefreshing ? 'Refreshing...' : pullDistance > 80 ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        )}
         {filteredCheckins.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center bg-white rounded-xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)] p-6 border border-gray-300">
