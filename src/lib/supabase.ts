@@ -29,14 +29,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Export helper for checking connection
-export async function checkSupabaseConnection() {
+export async function checkSupabaseConnection(): Promise<{ ok: boolean; error?: string }> {
   try {
     const { error } = await supabase.from('messages').select('id').limit(1);
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase DB error:', error);
+      return { ok: false, error: error.message };
+    }
     console.log('✅ Supabase connection successful');
-    return true;
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error);
-    return false;
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('❌ Supabase connection failed:', err);
+    return { ok: false, error: message };
   }
 }

@@ -11,7 +11,7 @@ import TrendingSpots from './components/TrendingSpots';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './contexts/AuthContext';
 import { Venue, CheckIn, Message } from './types';
-import { supabase } from './lib/supabase';
+import { supabase, checkSupabaseConnection } from './lib/supabase';
 import { fetchNearbyVenues as fetchOverpassVenues } from './lib/overpass';
 import { encode as encodeGeohash } from './lib/geohash';
 import { MapPin, Activity, TrendingUp } from 'lucide-react';
@@ -33,12 +33,23 @@ function App() {
   } | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'feed' | 'trending'>('map');
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [dbErrorDismissed, setDbErrorDismissed] = useState(false);
 
   // Request notification permission on load (simple)
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+  }, []);
+
+  // Check database connection once on load
+  useEffect(() => {
+    let cancelled = false;
+    checkSupabaseConnection().then((result) => {
+      if (!cancelled && !result.ok) setDbError(result.error ?? 'Database error');
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch nearby venues
@@ -441,6 +452,35 @@ function App() {
           <p className="text-xs text-yellow-700 mt-1">
             Please enable location permissions in your browser to discover real venues nearby.
           </p>
+        </div>
+      )}
+
+      {/* Database Error - schema not run or Supabase issue */}
+      {dbError && !dbErrorDismissed && (
+        <div className="bg-amber-100 border-b border-amber-300 px-4 py-3 flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-900">Database not working</p>
+            <p className="text-xs text-amber-800 mt-0.5 break-all">{dbError}</p>
+            <p className="text-xs text-amber-800 mt-2">
+              Run the schema in Supabase: open SQL Editor, paste all of <code className="bg-amber-200/80 px-1 rounded">SCHEMA_SIMPLE.sql</code>, then Run.
+            </p>
+            <a
+              href="https://supabase.com/dashboard/project/qpqlhqrzajwzggismznp/sql/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-2 text-sm font-medium text-amber-900 underline"
+            >
+              Open Supabase SQL Editor →
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDbErrorDismissed(true)}
+            className="shrink-0 text-amber-700 hover:text-amber-900"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 
