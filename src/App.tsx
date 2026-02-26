@@ -7,6 +7,7 @@ import VenueList from './components/VenueList';
 import AuthModal from './components/AuthModal';
 import ReplyModal from './components/ReplyModal';
 import ProfilePage from './components/ProfilePage';
+import AboutModal from './components/AboutModal';
 import TrendingSpots from './components/TrendingSpots';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useAuth } from './contexts/AuthContext';
@@ -26,6 +27,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showProfilePage, setShowProfilePage] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const [replyTo, setReplyTo] = useState<{
     id: string;
     username: string;
@@ -591,6 +593,20 @@ function App() {
 
       {/* Profile Page */}
       {showProfilePage && <ProfilePage onClose={() => setShowProfilePage(false)} />}
+
+      {/* About Us Modal */}
+      {showAboutModal && <AboutModal onClose={() => setShowAboutModal(false)} />}
+
+      {/* Footer - About us link */}
+      <footer className="shrink-0 py-2 px-4 bg-[#4d6580]/90 border-t border-gray-500/40 flex justify-center">
+        <button
+          type="button"
+          onClick={() => setShowAboutModal(true)}
+          className="text-white/90 hover:text-white text-xs font-medium underline underline-offset-2 transition-colors"
+        >
+          About us
+        </button>
+      </footer>
     </div>
   );
 }
