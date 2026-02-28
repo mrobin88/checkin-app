@@ -37,9 +37,20 @@ interface ActivityFeedProps {
   userLocation: Location | null;
   onReply: (checkInId: string, originalUser: string, venueName: string) => void;
   onRefresh?: () => Promise<void>;
+  currentUserId?: string | null;
+  onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
 }
 
-export default function ActivityFeed({ checkins, userLocation, onReply, onRefresh }: ActivityFeedProps) {
+export default function ActivityFeed({
+  checkins,
+  userLocation,
+  onReply,
+  onRefresh,
+  currentUserId = null,
+  onEditMessage,
+  onDeleteMessage,
+}: ActivityFeedProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('nearby');
   
   const { containerRef, isPulling, pullDistance, isRefreshing } = usePullToRefresh({
@@ -193,7 +204,14 @@ export default function ActivityFeed({ checkins, userLocation, onReply, onRefres
         ) : (
           <div className="max-w-2xl mx-auto space-y-3">
             {filteredCheckins.map((checkin) => (
-              <CheckInCard key={checkin.id} checkin={checkin} onReply={onReply} />
+              <CheckInCard
+                key={checkin.id}
+                checkin={checkin}
+                onReply={onReply}
+                currentUserId={currentUserId}
+                onEditMessage={onEditMessage}
+                onDeleteMessage={onDeleteMessage}
+              />
             ))}
           </div>
         )}

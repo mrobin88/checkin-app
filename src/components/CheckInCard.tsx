@@ -8,6 +8,9 @@ import {
   Navigation,
   MessageCircle,
   Loader2,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { CheckIn, Reply as ReplyType } from '../types';
 import { VENUE_CATEGORIES } from '../types';
@@ -23,13 +26,27 @@ interface CheckInWithDistance extends CheckIn {
 interface CheckInCardProps {
   checkin: CheckInWithDistance;
   onReply: (checkInId: string, username: string, venueName: string) => void;
+  currentUserId?: string | null;
+  onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+  onDeleteMessage?: (messageId: string) => Promise<void>;
 }
 
-export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
+export default function CheckInCard({
+  checkin,
+  onReply,
+  currentUserId = null,
+  onEditMessage,
+  onDeleteMessage,
+}: CheckInCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [replies, setReplies] = useState<ReplyType[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [replyCount, setReplyCount] = useState(checkin.reply_count || 0);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(checkin.comment || '');
+  const [saving, setSaving] = useState(false);
+
+  const isOwnPost = Boolean(currentUserId && checkin.user_id === currentUserId);
 
   // Fetch replies when accordion is opened
   useEffect(() => {
@@ -190,7 +207,7 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
               <LikeButton messageId={checkin.id} />
               
               <button
@@ -207,6 +224,36 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
                 <Reply size={12} />
                 Reply
               </button>
+
+              {isOwnPost && onEditMessage && (
+                <button
+                  onClick={() => {
+                    setEditContent(checkin.comment || '');
+                    setEditing(true);
+                  }}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                >
+                  <Pencil size={12} />
+                  Edit
+                </button>
+              )}
+              {isOwnPost && onDeleteMessage && (
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Delete this check-in? This cannot be undone.')) {
+                      try {
+                        await onDeleteMessage(checkin.id);
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
+                >
+                  <Trash2 size={12} />
+                  Delete
+                </button>
+              )}
 
               {/* Reply Count Toggle */}
               {replyCount > 0 && (
@@ -278,6 +325,62 @@ export default function CheckInCard({ checkin, onReply }: CheckInCardProps) {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editing && onEditMessage && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setEditing(false)}
+        >
+          <div className="bg-white rounded-xl shadow-lg border border-gray-300 w-full max-w-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-gray-900">Edit check-in</h3>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="p-1 text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full min-h-[80px] p-3 border border-gray-300 rounded-lg text-sm resize-y"
+              placeholder="Your message..."
+              autoFocus
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await onEditMessage(checkin.id, editContent.trim() || 'Checked in! 📍');
+                    setEditing(false);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="flex-1 py-2 rounded-lg bg-[#5ba4e5] text-white font-medium text-sm disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

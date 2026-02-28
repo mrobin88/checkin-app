@@ -7,7 +7,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onLoginClick, onProfileClick }: HeaderProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, profileAvatarUrl } = useAuth();
 
   return (
     <header className="bg-gradient-to-b from-[#6d84a3] via-[#5a7493] to-[#4d6580] border-b-2 border-gray-800 px-4 py-3 flex items-center justify-between shadow-lg">
@@ -40,6 +40,7 @@ export default function Header({ onLoginClick, onProfileClick }: HeaderProps) {
           >
             <img
               src={
+                profileAvatarUrl ||
                 user.user_metadata?.avatar_url ||
                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
               }

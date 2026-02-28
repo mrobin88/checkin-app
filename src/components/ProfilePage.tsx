@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   MapPin,
   Flame,
@@ -41,7 +41,7 @@ interface Achievement {
 }
 
 export default function ProfilePage({ onClose }: ProfilePageProps) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, profileAvatarUrl, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<'stats' | 'friends' | 'achievements' | 'saved'>('stats');
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -219,8 +219,47 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
   const avatarUrl =
+    profileAvatarUrl ||
     user?.user_metadata?.avatar_url ||
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarClick = () => {
+    if (!user?.id) return;
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please choose an image file (e.g. JPG or PNG).');
+      return;
+    }
+    e.target.value = '';
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', user.id);
+      if (updateError) throw updateError;
+      await refreshProfile();
+    } catch (err: any) {
+      console.error('Avatar upload failed:', err);
+      alert(err?.message || 'Failed to update photo. Create an "avatars" storage bucket in Supabase with public read.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -273,11 +312,35 @@ export default function ProfilePage({ onClose }: ProfilePageProps) {
       <div className="flex-shrink-0 px-4 py-6">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-300 p-6">
           <div className="flex items-center gap-4">
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="w-20 h-20 rounded-full border-4 border-[#5ba4e5] shadow-lg"
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
             />
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              disabled={!user?.id || uploadingAvatar}
+              className="relative rounded-full focus:ring-2 focus:ring-[#5ba4e5] focus:ring-offset-2"
+            >
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="w-20 h-20 rounded-full border-4 border-[#5ba4e5] shadow-lg object-cover"
+              />
+              {uploadingAvatar && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                  <Loader2 size={24} className="text-white animate-spin" />
+                </div>
+              )}
+              {user?.id && !uploadingAvatar && (
+                <span className="absolute bottom-0 right-0 text-[10px] bg-[#5ba4e5] text-white px-1.5 py-0.5 rounded shadow">
+                  Edit
+                </span>
+              )}
+            </button>
             <div className="flex-1">
               <h2 className="text-xl font-bold text-gray-900">{displayName}</h2>
               <p className="text-sm text-gray-600">{user?.email || 'Guest User'}</p>

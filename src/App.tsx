@@ -19,7 +19,7 @@ import { MapPin, Activity, TrendingUp } from 'lucide-react';
 
 function App() {
   const { location, error: locationError } = useGeolocation();
-  const { user } = useAuth();
+  const { user, profileAvatarUrl } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -229,6 +229,7 @@ function App() {
 
     const username = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
     const avatarUrl =
+      profileAvatarUrl ||
       user?.user_metadata?.avatar_url ||
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
 
@@ -308,12 +309,39 @@ function App() {
     }
   };
 
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    const { error } = await supabase
+      .from('messages')
+      .update({ content: newContent })
+      .eq('id', messageId);
+    if (error) {
+      console.error('Error editing message:', error);
+      throw error;
+    }
+    setCheckins((prev) =>
+      prev.map((c) => (c.id === messageId ? { ...c, comment: newContent } : c))
+    );
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_deleted: true })
+      .eq('id', messageId);
+    if (error) {
+      console.error('Error deleting message:', error);
+      throw error;
+    }
+    setCheckins((prev) => prev.filter((c) => c.id !== messageId));
+  };
+
   const handleCheckIn = async (venueId: string, comment?: string) => {
     if (!location || !selectedVenue) return;
 
     try {
       const username = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
       const avatarUrl =
+        profileAvatarUrl ||
         user?.user_metadata?.avatar_url ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
 
@@ -508,6 +536,9 @@ function App() {
             userLocation={location} 
             onReply={handleReply}
             onRefresh={handleRefreshFeed}
+            currentUserId={user?.id ?? null}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
           />
         ) : (
           <div className="h-full overflow-y-auto p-4 space-y-4">
